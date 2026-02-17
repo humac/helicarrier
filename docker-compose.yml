@@ -1,0 +1,15 @@
+services:
+  helicarrier:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: helicarrier
+    ports:
+      - "3000:3000"
+    environment:
+      HELICARRIER_SECRET: ${HELICARRIER_SECRET}
+      NEXT_PUBLIC_HELICARRIER_SECRET: ${NEXT_PUBLIC_HELICARRIER_SECRET}
+      OPENCLAW_AUTH_TOKEN: ${OPENCLAW_AUTH_TOKEN:-}
+    volumes:
+      - ${OPENCLAW_HOME:-$HOME/.openclaw}:/home/app/.openclaw:ro
+    restart: unless-stopped

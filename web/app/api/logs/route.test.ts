@@ -20,6 +20,7 @@ vi.mock("node:fs", () => {
 describe("GET /api/logs", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.HELICARRIER_SECRET = "test-secret";
   });
 
   it("returns parsed logs from file", async () => {
@@ -32,7 +33,10 @@ describe("GET /api/logs", () => {
     ].join("\n"));
 
     const { GET } = await import("@/app/api/logs/route");
-    const response = await GET();
+    const request = new Request("http://localhost/api/logs", {
+      headers: { "x-secret-key": "test-secret" },
+    });
+    const response = await GET(request);
     const data = await response.json();
 
     expect(data.logs).toHaveLength(3);
@@ -55,10 +59,21 @@ describe("GET /api/logs", () => {
     mockStat.mockRejectedValue(new Error("missing"));
 
     const { GET } = await import("@/app/api/logs/route");
-    const response = await GET();
+    const request = new Request("http://localhost/api/logs", {
+      headers: { "x-secret-key": "test-secret" },
+    });
+    const response = await GET(request);
     const data = await response.json();
 
     expect(data).toEqual({ logs: [] });
     expect(mockReadFile).not.toHaveBeenCalled();
+  });
+
+  it("returns 401 when secret header is missing", async () => {
+    const { GET } = await import("@/app/api/logs/route");
+    const request = new Request("http://localhost/api/logs");
+    const response = await GET(request);
+
+    expect(response.status).toBe(401);
   });
 });
