@@ -4,8 +4,9 @@
 
 ### [H-001] Gateway API Integration Blocked (Missing Public REST Endpoints)
 
-**Status:** Blocked / Workaround Active
+**Status:** Tracked on GitHub
 **Created:** 2026-02-17
+**GitHub:** https://github.com/humac/helicarrier/issues/1
 
 **Description:**
 During Phase 3 of Project Helicarrier (Mission Control Dashboard), we attempted to fetch agent/session status from the OpenClaw Gateway.
