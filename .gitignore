@@ -1,0 +1,16 @@
+# Runtime artifacts
+agents.json
+sessions.json
+status.json
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Node/Next artifacts
+web/node_modules/
+web/.next/
