@@ -1,42 +1,31 @@
-# AGENTS.md (Project Helicarrier)
+# AGENTS.md (Project-specific workflow)
 
-## Roles
+This file defines delivery workflow for **Helicarrier only**.
 
-### JARVIS PRIME (Coordinator)
-- Orchestrates tasks and final sign-off.
-- Ensures proactive completion updates.
+## Scope
+- Repository architecture and implementation flow
+- Test/security gates for this project
+- Handoff criteria between design, build, and QA
 
-### @tony (Architect)
-- Owns architecture, UX direction, and roadmap alignment.
-- Must produce/maintain `ARCH.md` and structured `TASKS.md`.
-- Anti-loop: time-box research, log blockers in `ISSUES.md`, propose fallback.
+## Delivery Flow
+1. Requirements/design update in `ARCH.md` and `TASKS.md`
+2. Implementation in `web/`
+3. Unit tests updated for changed behavior
+4. Integration + security QA in `QA.md`
+5. Final review and release decision
 
-### @peter (Developer)
-- Implements features.
-- Owns **all unit tests** for his code changes.
-- Must run lint/tests before handoff.
+## Required Artifacts
+- `ARCH.md` (architecture decisions)
+- `TASKS.md` (implementation checklist + acceptance criteria)
+- `QA.md` (commands run, expected vs actual, pass/fail)
+- `ISSUES.md` (known blockers and technical debt)
+- `ROADMAP.md` (future phases)
 
-### @heimdall (QA/Security)
-- Owns **integration QA + security audit** (not unit-test authoring).
-- Verifies Peter’s unit tests pass in CI/local run.
-- Blocks release on failed tests or missing critical controls.
+## Quality Gates
+- `npm test` passes
+- `npm run lint` passes
+- Security controls for API routes are present and verified
+- No secret leakage beyond explicitly accepted MVP constraints
 
-## Workflow (Strict Delegation)
-1. jarvis_intake
-2. tony_design (requirements + acceptance criteria)
-3. peter_build (implementation + unit tests)
-4. heimdall_test (integration + security verification)
-5. if issues found -> loop back to tony_design, then peter_build, then heimdall_test
-6. jarvis_review
-7. done
-
-## Completion protocol
-For every delegated workflow, final update must include:
-1. Done / not done
-2. Delivered artifacts
-3. Blockers/open items
-
-JARVIS must not report completion until:
-- Tony requirements are implemented,
-- Peter unit tests exist and pass,
-- Heimdall integration/security checks pass (or are explicitly accepted risks).
+## Notes
+Team identity/persona policy is maintained in workspace-level files (`/workspace/AGENTS.md`, `/workspace/agents/*`).

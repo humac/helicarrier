@@ -1,25 +1,38 @@
-# CLAUDE.md (AI Helper)
+# CLAUDE.md (Project helper)
 
-## Purpose
-Guidance for AI assistants contributing to this repository.
+## Project Context
+Helicarrier is a Mission Control dashboard for OpenClaw operations.
 
-## Rules
-1. Keep architecture aligned with `ARCH.md` and priorities in `TASKS.md`.
-2. Never hardcode secrets; use `.env.local` / `.env` and `.env.example` patterns.
-3. Preserve the Stark HUD visual language (dark, glass, clean spacing).
-4. Keep API security intact (`x-secret-key` checks on sensitive routes).
-5. Add or update tests for any changed behavior.
+## Implementation Priorities
+1. Correctness of status/telemetry display
+2. Security of API routes and secrets handling
+3. Clear operator UX (readability + responsiveness)
+4. Maintainability (small modules, test coverage)
 
-## Coding conventions
+## Coding Standards
+- TypeScript strict mode
 - Components: PascalCase
 - Variables/functions: camelCase
-- Interfaces/types: IPascalCase for interfaces
-- Keep modules focused and small
+- Interfaces: `IPascalCase`
+- Keep business logic out of presentational components
 
-## Quality gate before completion
-- Tony's acceptance criteria are implemented.
-- Peter-authored unit tests exist for changed behavior and `npm test` passes.
-- Heimdall integration/security audit passes (or risks are explicitly accepted).
-- `npm run lint` passes.
-- No secret leakage to client unless explicitly accepted for MVP.
-- Update docs (`README.md`, `ISSUES.md`, `ROADMAP.md`) when relevant.
+## Security Rules
+- Never hardcode secrets
+- Use `.env.local` / `.env` + `.env.example`
+- Protect sensitive API routes (header/session checks)
+- Treat client-exposed env vars as non-secret
+
+## Test Requirements
+- Add/update unit tests for any changed behavior
+- Keep route logic testable and covered
+- Run before completion:
+  - `npm test`
+  - `npm run lint`
+
+## Documentation Requirements
+When behavior changes, update relevant docs:
+- `README.md`
+- `ARCH.md`
+- `TASKS.md`
+- `QA.md`
+- `ISSUES.md` / `ROADMAP.md` (if planning/debt changed)
