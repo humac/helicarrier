@@ -23,7 +23,9 @@ Helicarrier is a command HUD for OpenClaw operations. Priorities:
 - Default to least privilege and read-only host mounts where possible.
 
 ## Delivery checklist
-- Code implemented
-- Tests added/updated
-- Docs updated
-- Risks noted in `QA.md` or `ISSUES.md`
+- Tony defined requirements and acceptance criteria.
+- Peter implemented code and authored unit tests.
+- Heimdall completed integration + security QA.
+- Any findings looped back through Tony -> Peter -> Heimdall until satisfactory.
+- Docs updated.
+- Risks noted in `QA.md` or `ISSUES.md`.

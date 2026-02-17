@@ -17,7 +17,9 @@ Guidance for AI assistants contributing to this repository.
 - Keep modules focused and small
 
 ## Quality gate before completion
-- `npm test` passes
-- `npm run lint` passes
-- No secret leakage to client unless explicitly accepted for MVP
-- Update docs (`README.md`, `ISSUES.md`, `ROADMAP.md`) when relevant
+- Tony's acceptance criteria are implemented.
+- Peter-authored unit tests exist for changed behavior and `npm test` passes.
+- Heimdall integration/security audit passes (or risks are explicitly accepted).
+- `npm run lint` passes.
+- No secret leakage to client unless explicitly accepted for MVP.
+- Update docs (`README.md`, `ISSUES.md`, `ROADMAP.md`) when relevant.

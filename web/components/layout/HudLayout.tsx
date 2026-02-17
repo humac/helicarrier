@@ -6,9 +6,11 @@ import { Activity, Terminal, Shield, Cpu } from "lucide-react";
 
 interface HudLayoutProps {
   children: React.ReactNode;
+  activeTab: "overview" | "logs" | "resources";
+  onTabChange: (tab: "overview" | "logs" | "resources") => void;
 }
 
-export default function HudLayout({ children }: HudLayoutProps) {
+export default function HudLayout({ children, activeTab, onTabChange }: HudLayoutProps) {
   return (
     <div className="flex h-screen w-full bg-zinc-950 text-zinc-100 overflow-hidden bg-[url('/grid-pattern.svg')]">
       {/* Sidebar (Glass) */}
@@ -22,9 +24,9 @@ export default function HudLayout({ children }: HudLayoutProps) {
         </div>
 
         <nav className="flex-1 p-4 space-y-2">
-          <NavItem icon={<Activity />} label="Overview" active />
-          <NavItem icon={<Terminal />} label="System Logs" />
-          <NavItem icon={<Cpu />} label="Resources" />
+          <NavItem icon={<Activity />} label="Overview" active={activeTab === "overview"} onClick={() => onTabChange("overview")} />
+          <NavItem icon={<Terminal />} label="System Logs" active={activeTab === "logs"} onClick={() => onTabChange("logs")} />
+          <NavItem icon={<Cpu />} label="Resources" active={activeTab === "resources"} onClick={() => onTabChange("resources")} />
         </nav>
 
         <div className="p-4 border-t border-zinc-800/50">
@@ -43,9 +45,9 @@ export default function HudLayout({ children }: HudLayoutProps) {
   );
 }
 
-function NavItem({ icon, label, active = false }: { icon: React.ReactNode, label: string, active?: boolean }) {
+function NavItem({ icon, label, active = false, onClick }: { icon: React.ReactNode, label: string, active?: boolean, onClick?: () => void }) {
   return (
-    <button className={cn(
+    <button onClick={onClick} className={cn(
       "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sm font-medium",
       active ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20" : "hover:bg-zinc-800/50 text-zinc-400 hover:text-zinc-100"
     )}>
