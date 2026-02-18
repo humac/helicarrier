@@ -50,10 +50,14 @@ export function evaluateRule(
   const deduped = sameFingerprint && nowMs - prevNotifiedMs < cooldownMs;
 
   const transitioned = !previous || previous.status !== next;
+  const suppressedUntil = deduped ? new Date(nowMs + cooldownMs).toISOString() : undefined;
+  const lifecycleState: AlertState["lifecycleState"] = next === "resolved" ? "resolved" : deduped ? "suppressed" : "active";
 
   return {
     ruleId: rule.ruleId,
     status: next,
+    lifecycleState,
+    suppressedUntil,
     lastValue: value,
     lastEvaluatedAt: nowIso,
     lastTransitionAt: transitioned ? nowIso : (previous?.lastTransitionAt ?? nowIso),

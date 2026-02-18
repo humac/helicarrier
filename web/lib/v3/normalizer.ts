@@ -47,8 +47,14 @@ export function normalizeUsage(payload: ProviderPayload): SessionUsage {
     costUsd,
     costConfidence,
     provider: payload.provider,
-    pricingVersion: costConfidence === "estimated" ? "v3-default" : undefined,
+    pricingVersion: costConfidence === "unknown" ? undefined : "v4.1-default",
     computedAt: new Date().toISOString(),
+    tokenSource: typeof payload.totalTokens === "number" || typeof payload.promptTokens === "number" || typeof payload.completionTokens === "number" ? "provider_reported" : "missing",
+    runtimeSource: payload.endedAt || payload.terminalAt ? "provider_reported" : "derived",
+    costSource: typeof payload.billedCostUsd === "number" ? "provider_reported" : typeof totalTokens === "number" ? "derived" : "missing",
+    tokenConfidence: typeof totalTokens === "number" ? "high" : "unknown",
+    runtimeConfidence: payload.endedAt || payload.terminalAt ? "high" : "medium",
+    costConfidenceLevel: costConfidence === "exact" ? "high" : costConfidence === "estimated" ? "medium" : "unknown",
   };
 }
 

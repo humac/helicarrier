@@ -291,8 +291,6 @@ Rule definitions separated from runtime state machine.
 - `last_notified_at`
 - `active_fingerprint` (for dedup)
 
----
-
 ### 8.3 Ingestion & Retrieval Flow
 
 #### 8.3.0 Ingest validation contract (blocking)
@@ -347,49 +345,180 @@ SLA target: completed session appears in ledger quickly; analytics/matrix visibl
 
 ---
 
-### 8.4 Usage Analytics Semantics
-- **Runtime**: `ended_at - started_at`; if ended missing and terminal event exists, use terminal timestamp.
-- **Tokens**: use provider-reported prompt/completion/total when present; otherwise partial nulls allowed.
-- **Cost**:
-  - `exact`: provider includes billed amount.
-  - `estimated`: derived from pricing table version + token counts.
-  - `unknown`: insufficient inputs.
-- UI must expose confidence/source for non-exact cost.
+## 9) V4.1 Hardening & Scale Architecture Baseline
 
----
+### 9.1 Scope Linkage
+This section defines the V4.1 implementation baseline for FR-DS, FR-CH, and FR-GV from `REQ.md`. It is intentionally minimum-viable and fail-closed.
 
-### 8.5 Model Performance Matrix Logic
-- Eligible runs for success-rate denominator: terminal outcomes only (`success|failed|killed|cancelled`).
-- `failure_count` includes `failed`; `killed/cancelled` retained as separate operational buckets.
-- Median runtime/cost computed on eligible runs with non-null metrics.
-- `sample_warning=true` when `runs_total < MIN_SAMPLE_N` (default 5; configurable).
-- Segmentation precedence: date range required; optional `agent_id`, optional `task_category`.
+### 9.2 SQLite Migration Baseline (FR-DS)
 
----
+#### 9.2.1 Physical DB + operational mode
+- Engine: SQLite 3 in WAL mode (`journal_mode=WAL`) for single-node read/write concurrency.
+- Foreign keys: enabled on every connection (`PRAGMA foreign_keys=ON`).
+- Busy timeout set (e.g., 5000ms) to avoid transient lock failures.
+- DB path: configurable via `HELICARRIER_DB_PATH`; default under project data dir.
 
-### 8.6 Alerting Rules & Threshold Engine
+#### 9.2.2 Schema baseline (v1)
+V4.1 keeps existing V3 entities but codifies them as migration-managed tables:
+- `session_ledger`
+- `session_events`
+- `session_usage`
+- `daily_usage_agg`
+- `model_perf_agg`
+- `alert_rules`
+- `alert_state`
 
-#### 8.6.1 Evaluation triggers
-- On ingestion completion for a terminal session.
-- On periodic sweep (e.g., every 5 min) for missed events.
+Governance-required columns in baseline schema:
+- `session_usage.pricing_version` (TEXT, nullable only when `cost_confidence=unknown`)
+- `session_usage.cost_source` (`provider_reported|estimated_from_pricing|unknown`)
+- `session_usage.cost_confidence` (`exact|estimated|unknown`)
+- `session_usage.token_source` + `runtime_source` (provider vs derived)
+- `alert_state.lifecycle_state` (`active|suppressed|resolved`) and `suppressed_until` (nullable)
 
-#### 8.6.2 State machine
-- `ok -> warning -> critical` on threshold crossing.
-- `critical/warning -> resolved -> ok` when metric returns below warn threshold.
-- Persist every transition with timestamp and metric value.
+Indexes (minimum):
+- Ledger: `(agent_id, started_at DESC)`, `(status, started_at DESC)`, `(model_id, started_at DESC)`
+- Usage: `(pricing_version)`, `(computed_at DESC)`
+- Alerts: `(status, last_transition_at DESC)`, `(lifecycle_state, suppressed_until)`
+- FTS for session search remains enabled.
 
-#### 8.6.3 Dedup/suppression
-- Fingerprint: `rule_id + scope + status + rounded(metric)`.
-- Suppress notifications while fingerprint unchanged and cooldown active.
-- Always notify on severity escalation or resolved transition.
+#### 9.2.3 Migration strategy
+- Use forward-only versioned SQL migrations: `0001_init.sql`, `0002_v41_governance.sql`, etc.
+- Migration runner executes at service startup before API mounts.
+- Migration lock: single-process guard table (`schema_migrations_lock`) to prevent duplicate runners.
+- Startup behavior:
+  1) Open DB
+  2) Acquire migration lock
+  3) Apply unapplied migrations transactionally
+  4) Release lock
+  5) Expose readiness
+- On migration failure: service is **not ready**; all API routes fail with 503 health signal until fixed.
 
-#### 8.6.4 HUD payload contract
-- `ruleId`, `metric`, `scope`, `value`, `warnThreshold`, `criticalThreshold`, `status`, `triggeredAt`, `deduped`.
+#### 9.2.4 Repository abstraction
+Define repository interfaces decoupled from transport/storage:
+- `LedgerRepository`
+- `UsageRepository`
+- `PerformanceRepository`
+- `AlertRepository`
+- `MigrationRepository`
 
----
+Rules:
+- API/services depend on interfaces only.
+- SQLite implementation lives in infra layer (`infra/sqlite/*`).
+- Existing JSON store (legacy) moved behind same interfaces for read-only fallback/import.
 
-### 8.7 Reliability & Non-Regression
-- V1/V2 APIs remain intact; V3 mounted under `/api/v3/*`.
-- If ingestion pipeline degrades, ledger remains queryable for already persisted data.
-- No control-plane decisions may depend on log parsing.
-- Contract tests required at adapter boundary for upstream payload changes.
+#### 9.2.5 JSON -> SQLite transition plan
+Two-stage cutover with rollback window:
+1. **Import stage (one-time backfill)**
+   - Read JSON artifacts, transform via same normalizer, write into SQLite using idempotent upserts.
+   - Produce import report: rows read/written/skipped/errors.
+2. **Dual-read verification stage (short-lived)**
+   - Primary reads from SQLite.
+   - Diagnostic endpoint compares sampled JSON vs SQLite aggregates for drift.
+3. **Cutover stage**
+   - Disable JSON writes entirely.
+   - Keep JSON files as immutable backup until V4.2 cleanup.
+
+Rollback policy:
+- If SQLite migration/import fails pre-cutover, continue JSON path and block V4.1 release.
+- If post-cutover critical defect appears, restore previous build + DB snapshot; no mixed writer mode.
+
+Retention baseline:
+- Keep raw session/event rows for 90 days minimum.
+- Aggregates retained 365 days.
+- Daily cleanup job with dry-run support and audit logs.
+
+### 9.3 Contract Hardening Layer (FR-CH)
+
+#### 9.3.1 Version guards and adapters
+Introduce explicit ingress envelope contract:
+- `envelope_version` (required)
+- `source` (gateway/provider id)
+- `payload`
+
+`ContractRegistry` maps supported versions to adapters:
+- `v1` -> `GatewayV1Adapter`
+- `v2` -> `GatewayV2Adapter`
+- unknown -> reject
+
+Behavior:
+- Adapter performs structural coercion only (no hidden defaults for required fields).
+- Canonical validator runs after adapter output.
+
+#### 9.3.2 Deterministic validation + error model
+Validation uses stable error schema:
+```json
+{
+  "error": {
+    "code": "<ENUM>",
+    "message": "<human summary>",
+    "details": [
+      { "field": "session.state", "issue": "required", "expected": "string" }
+    ],
+    "requestId": "<trace id>"
+  }
+}
+```
+
+Error code set (minimum):
+- `UNSUPPORTED_CONTRACT_VERSION` (422)
+- `VALIDATION_ERROR` (400)
+- `IDEMPOTENCY_CONFLICT` (409)
+- `INGEST_NOT_AUTHORIZED` (401)
+- `INGEST_INTERNAL_ERROR` (500, reserved for unexpected faults only)
+
+Determinism rule:
+- Same invalid payload must return same status + error code + field path ordering.
+
+#### 9.3.3 Fail-closed behavior
+- If adapter or validator cannot prove payload compatibility, request is rejected.
+- No partial writes on rejected ingest.
+- Unknown enum values are rejected unless explicitly mapped.
+- Incompatible versions emit structured error + telemetry signal (`contract_rejection_total{code,version}`).
+
+#### 9.3.4 Idempotency contract
+- Idempotency key: `session_id` + terminal state marker.
+- Duplicate retries return success with `idempotent_replay=true` and no duplicate rows/transitions.
+- Conflicting duplicate (same key, divergent immutable fields) returns `409 IDEMPOTENCY_CONFLICT`.
+
+### 9.4 Governance Minimums (FR-GV)
+
+#### 9.4.1 Pricing version persistence
+- Every persisted cost-bearing usage row must include:
+  - `pricing_version`
+  - `cost_source`
+  - `cost_confidence`
+- If source is provider-reported with no pricing lookup, set `pricing_version='provider_native'`.
+- Any estimated cost without pricing_version is invalid and rejected at write boundary.
+
+#### 9.4.2 Telemetry confidence/source model
+For each metric family (`tokens`, `runtime_ms`, `cost_usd`) store:
+- `*_value`
+- `*_source` (`provider_reported|derived|missing`)
+- `*_confidence` (`high|medium|low|unknown`)
+
+Confidence policy baseline:
+- `high`: directly provider reported and internally consistent
+- `medium`: derived from complete supporting fields
+- `low`: derived with assumptions/fallback heuristics
+- `unknown`: insufficient data
+
+API responses expose both value and provenance metadata for auditability.
+
+#### 9.4.3 Alert lifecycle policy
+Alert engine persists deterministic lifecycle with explicit transitions:
+- `active` (new warning/critical)
+- `suppressed` (same fingerprint within cooldown)
+- `resolved` (metric back below warn threshold)
+
+Policy minimums:
+- Evaluation cadence: on terminal ingest + periodic sweep every 5m.
+- Severity mapping: `ok|warning|critical`.
+- Dedup key: `rule_id + scope + severity + rounded(metric)`.
+- Notify on: first active, severity escalation, resolved.
+- Do not notify on: repeated suppressed evaluations.
+
+### 9.5 Backward Compatibility + Non-Regression
+- V1/V2 routes untouched functionally.
+- V3 route response shapes remain backward compatible in V4.1.
+- Contract hardening is additive (stricter ingest) and must not break valid historical fixtures.
+- Non-regression suite must gate release for `/api/system/status`, `/api/control/*`, and all V3 read routes.

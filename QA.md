@@ -399,3 +399,117 @@ Validated blocker fix for `POST /api/v3/ingest/session` per Peter handoff.
 
 ### Recommendation
 - Recommend closing GitHub issue **#4**.
+
+---
+
+## V4.1 Dev Handoff (Peter -> Heimdall, 2026-02-18)
+
+### Implemented (V4.1 Build)
+- SQLite baseline and migration runner:
+  - Added `web/lib/v3/sqliteRepository.ts` with migration table, lock table, schema v1 baseline, indexes, and transactional migration apply.
+  - Repository enforces migration run at initialization (`ready()`) and fail-closed on migration/DDL errors.
+- Repository abstraction + staged cutover:
+  - Added `web/lib/v3/repository.ts` interface.
+  - Refactored `web/lib/v3/store.ts` to select JSON or SQLite repo by config (`HELICARRIER_ENABLE_SQLITE`).
+  - Added staged JSON->SQLite importer hook (`HELICARRIER_ENABLE_JSON_IMPORT`) with idempotent upsert semantics.
+- Contract hardening layer:
+  - Added `web/lib/v3/contract.ts` with versioned envelope adapters (`v1`, `v2`), deterministic sorted validation errors, unsupported-version handling, and fail-closed strict mode.
+  - Updated ingest route to require contract envelope in strict mode and enforce idempotency conflict checks.
+- Governance minimums:
+  - Persisted/required `pricingVersion` on cost-bearing usage rows.
+  - Added telemetry provenance/source-confidence fields on usage records.
+  - Extended alert state persistence model with lifecycle/suppression fields.
+  - Updated alert evaluator to persist lifecycle transitions (`active`/`suppressed`/`resolved`).
+- Non-regression/API surface:
+  - Added missing control route `POST /api/control/model` + tests to keep V1/V2 control surface covered.
+
+### Tests Added/Updated
+- Added: `web/lib/v3/contract.test.ts`
+- Added: `web/app/api/control/model/route.test.ts`
+- Updated: `web/app/api/v3/ingest/session/route.test.ts` for envelope-based ingest contract
+- Existing V1/V2/V3 tests remain and pass.
+
+### Commands + Results
+- `cd projects/helicarrier/web && npm test`
+  - **PASS**: `19/19` files, `47/47` tests
+- `cd projects/helicarrier/web && npm run lint`
+  - **PASS**
+
+### Heimdall Retest Focus
+1. Start app with `HELICARRIER_ENABLE_SQLITE=true` and validate migration/application startup behavior (fail-closed expected if migration breaks).
+2. Verify strict ingest contract:
+   - missing `envelope_version` -> `400 VALIDATION_ERROR`
+   - unsupported version -> `422 UNSUPPORTED_CONTRACT_VERSION`
+   - same `idempotency_key` + different payload -> `409 IDEMPOTENCY_CONFLICT`
+3. Verify governance persistence:
+   - cost-bearing rows require `pricingVersion`
+   - usage payloads expose provenance/source-confidence fields
+   - alert states persist lifecycle/suppression fields after repeated evaluations.
+
+---
+
+## V4.1 QA Verification (Heimdall, 2026-02-18)
+
+### Scope Executed
+- Reviewed Peter handoff section: **"V4.1 Dev Handoff (Peter -> Heimdall, 2026-02-18)"**.
+- Validated V4.1 behaviors across contract/ingest/runtime persistence paths.
+- Ran quality gates in `projects/helicarrier/web`.
+- Performed non-regression spot checks across V1/V2/V3 API surfaces.
+
+### Quality Gates (Peter Claim Verification)
+- [x] `cd projects/helicarrier/web && npm test` -> **PASS** (`19/19` files, `47/47` tests).
+- [x] `cd projects/helicarrier/web && npm run lint` -> **PASS**.
+- Result: ✅ Peter’s claim (**47/47 + lint pass**) is verified.
+
+### V4.1 Behavior Validation
+
+#### 1) SQLite migration runner fail-closed
+- [x] Verified fail-closed behavior in code path (`getSqliteRepository()` initializes DB and runs migrations during `ready()`; migration errors throw and abort).
+- [x] Runtime negative check with invalid SQLite path (`HELICARRIER_DB_PATH=/root/forbidden/helicarrier.sqlite`, `HELICARRIER_ENABLE_SQLITE=true`) produced **500** on V3 route access (startup path fails closed, no silent fallback).
+
+#### 2) Repository backend selection (`HELICARRIER_ENABLE_SQLITE`)
+- [x] Verified in `lib/v3/store.ts`:
+  - `HELICARRIER_ENABLE_SQLITE=true` -> SQLite repository selected.
+  - otherwise -> JSON repository selected.
+- [x] Confirmed SQLite-backed runtime behavior while enabled (V3 routes served from sqlite db path configured for QA run).
+
+#### 3) JSON import hook idempotency (if enabled)
+- [x] Verified hook wiring (`HELICARRIER_ENABLE_JSON_IMPORT=true` triggers `importJsonToSqlite()` once during SQLite repository initialization).
+- [x] Verified importer semantics in `sqliteRepository.importJsonToSqlite()` are idempotent by design:
+  - checks existing `session_id` first,
+  - uses upsert/PK constraints,
+  - increments `skipped` for existing rows.
+- [x] Observed no duplicate ledger amplification during repeated QA server cycles against same sqlite file.
+
+#### 4) Contract hardening
+- [x] Missing `envelope_version` -> **400** `VALIDATION_ERROR`.
+- [x] Unsupported version -> **422** `UNSUPPORTED_CONTRACT_VERSION`.
+- [x] Version adapters (`v1`/`v2`) present and validated by tests (`lib/v3/contract.test.ts`) + runtime checks.
+- [x] Validation error payloads are deterministic/sorted in contract layer.
+
+#### 5) Ingest idempotency conflict behavior
+- [x] First ingest with idempotency key -> **200**.
+- [x] Second ingest with same `idempotency_key` + different payload fingerprint -> **409** `IDEMPOTENCY_CONFLICT`.
+
+#### 6) Governance persistence fields
+- [x] Cost-bearing usage rows require `pricingVersion` (guard present in JSON + SQLite repositories).
+- [x] Usage payload persisted/exposed telemetry provenance + confidence fields:
+  - `costSource`, `tokenSource`, `runtimeSource`,
+  - `tokenConfidence`, `runtimeConfidence`, `costConfidenceLevel`.
+- [x] Alert lifecycle persistence verified (after repeated evaluations):
+  - active row persisted with `lifecycle_state='suppressed'`,
+  - non-null `suppressed_until`,
+  - `active_fingerprint` and `deduped=1` persisted in sqlite `alert_state`.
+
+### Non-Regression Spot Checks (V1/V2/V3)
+- [x] **V1** `POST /api/control/kill` with auth + invalid body -> **400** (`sessionId is required`) as expected.
+- [x] **V2** `POST /api/control/model` with auth + valid payload -> **200** `{ ok: true, provider, model }`.
+- [x] **V3** `GET /api/v3/ledger` with auth -> **200** and valid response shape.
+- [x] Existing route test suites for V1/V2/V3 control/status/ledger/alerts remain green.
+
+### V4.1 QA Verdict
+- **PASS** ✅
+
+### Blockers
+- **None** for V4.1 scope.
+- Note: sqlite-specific unit-level coverage in Vitest is constrained by `node:sqlite` bundling behavior in current test runner environment; runtime validation and code-path audit were used for sqlite fail-closed/import checks.

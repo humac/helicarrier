@@ -1,110 +1,95 @@
-# Project Helicarrier - Requirements (V3 Sprint)
+# Project Helicarrier - Requirements (V4.1 Sprint: Hardening & Scale)
 
 ## 1) Product Objective
-Evolve Helicarrier from Command & Control (V2) into an **Intelligence** layer (V3) that enables:
-- forensic session review,
-- cost/runtime visibility,
-- model effectiveness comparison,
-- and proactive budget/performance alerting.
+Stabilize Helicarrier Intelligence (V3) for production-like reliability by hardening data integrity, ingest contracts, and governance policies.
 
-## 2) Sprint Scope (V3)
-This sprint implements four V3 capabilities:
-1. **Session History Ledger**
-2. **Usage Analytics** (tokens, runtime, cost)
-3. **Model Performance Matrix**
-4. **Alerting Thresholds**
+V4.1 delivers a **minimum viable hardening baseline** that reduces drift risk, improves query durability, and increases operator trust in analytics/alerts.
 
-## 3) User Stories
+## 2) Sprint Scope (V4.1)
+This sprint focuses on three tracks:
+1. **Data Store Migration MVP**: move persistence from JSON file storage to **SQLite**.
+2. **Contract Hardening (Ingest/Normalization)**: enforce strict, versioned ingest contracts and deterministic normalization behavior.
+3. **Alerting/Analytics Governance Minimums**: codify minimum policy and metadata needed for trustworthy alerts/cost analytics.
 
-### US-301: Session History Ledger
-As an operator, I want a searchable history of completed/past sessions so I can audit outcomes and investigate failures.
+## 3) MVP Decision: SQLite (V4.1)
+**Chosen for V4.1:** SQLite
 
-### US-302: Usage Analytics
-As an operator, I want usage analytics (tokens/runtime/cost) over time so I can identify waste and control spending.
+**Rationale:**
+- Lowest operational lift for current deployment model.
+- Enables immediate schema/migration/index discipline vs JSON files.
+- Provides transactional consistency and better query performance for single-node runtime.
 
-### US-303: Model Performance Matrix
-As an operator, I want to compare model success rates by task type so I can choose the most reliable model for future runs.
+**Deferred:** Postgres as V4.2+ scale path (multi-node/concurrent writer and larger retention demands).
 
-### US-304: Alerting Thresholds
-As an operator, I want configurable alert thresholds for spend/runtime/error signals so I can intervene before budgets or SLAs are breached.
+## 4) User Stories
 
-## 4) Functional Requirements
+### US-401: Durable Intelligence Storage
+As an operator, I need ledger/analytics data persisted in a transactional database so I can trust history and query results across restarts.
 
-### 4.1 Session History Ledger (FR-LG)
-- **FR-LG-01**: System must persist session metadata and lifecycle outcomes for completed and terminated sessions.
-- **FR-LG-02**: Ledger UI must support filtering by agent, outcome (`success|failed|killed|cancelled`), model, and date range.
-- **FR-LG-03**: Ledger UI must support keyword search by session id/title/task text.
-- **FR-LG-04**: Session detail view must show transcript/event timeline and links to produced artifacts/diffs when available.
-- **FR-LG-05**: Sorting must support newest-first by default and toggling by runtime/cost.
-- **FR-LG-06**: Empty/error states must be explicit and operator-readable.
+### US-402: Ingest Contract Safety
+As an operator, I need ingest payload validation and version compatibility checks so upstream contract drift cannot silently corrupt metrics.
 
-### 4.2 Usage Analytics (FR-UA)
-- **FR-UA-01**: System must capture token usage per session (prompt/completion/total where available).
-- **FR-UA-02**: System must capture runtime duration per session and aggregate by day/agent/model.
-- **FR-UA-03**: System must estimate or record cost per session and provide daily/weekly totals.
-- **FR-UA-04**: Dashboard must provide time-series visualization for tokens, runtime, and cost.
-- **FR-UA-05**: Analytics view must allow date-range and dimension filters (agent/model/task label).
-- **FR-UA-06**: Data freshness target: analytics reflect newly completed sessions within agreed ingestion window (target ≤ 5 minutes).
+### US-403: Governed Analytics & Alerts
+As an operator, I need minimum governance for normalization, pricing/version metadata, and alert lifecycle policy so reported insights are explainable and reproducible.
 
-### 4.3 Model Performance Matrix (FR-PM)
-- **FR-PM-01**: System must compute success rate by model over selectable date ranges.
-- **FR-PM-02**: Matrix must include at minimum: total runs, success count, failure count, success rate, median runtime, median cost.
-- **FR-PM-03**: Matrix must support segmentation by agent and task category when metadata exists.
-- **FR-PM-04**: UI must expose confidence caveat when sample size is below threshold (e.g., n < 5).
-- **FR-PM-05**: Failed runs must be drillable to corresponding ledger entries.
+## 5) Functional Requirements
 
-### 4.4 Alerting Thresholds (FR-AL)
-- **FR-AL-01**: Operators must be able to configure threshold rules for daily cost, runtime overrun, and failure-rate spikes.
-- **FR-AL-02**: Thresholds must support scope at global and per-agent/per-model levels.
-- **FR-AL-03**: Alert evaluation must run on ingestion/update and trigger state transitions (`ok|warning|critical`).
-- **FR-AL-04**: Active alerts must be visible in dashboard HUD with timestamp and triggering metric.
-- **FR-AL-05**: Alert notifications must include metric value, threshold, and affected scope.
-- **FR-AL-06**: Alert dedup/suppression must prevent repeated noisy notifications for unchanged violations.
+### 5.1 Data Store Migration (FR-DS)
+- **FR-DS-01**: System must replace JSON persistence paths for V3 ledger/analytics with SQLite-backed repositories.
+- **FR-DS-02**: System must include schema migration mechanism (versioned migrations applied on startup or deploy step).
+- **FR-DS-03**: Schema must include indexes for expected V3 query patterns (session lookup, date-range analytics, model/agent filters, active alerts).
+- **FR-DS-04**: Existing V3 API behaviors and response contracts must remain compatible (no breaking response shape changes in V4.1).
+- **FR-DS-05**: System must define and implement baseline retention/cleanup policy for historical intelligence data.
 
-## 5) Cross-Feature Requirements
-- **FR-CF-01**: All analytics inputs and derived metrics must be auditable and traceable to source sessions.
-- **FR-CF-02**: Metric definitions (success, runtime, cost) must be documented and consistent across UI/API.
-- **FR-CF-03**: Historical queries must be backed by persistent storage (no log-only dependency).
-- **FR-CF-04**: Existing V1/V2 operational features must remain functional (no regression to monitoring/control actions).
+### 5.2 Contract Hardening (FR-CH)
+- **FR-CH-01**: Ingest endpoint must enforce required fields and reject invalid payloads with deterministic 4xx error structure.
+- **FR-CH-02**: Normalization layer must include adapter/version guards for supported Gateway/RPC payload variants.
+- **FR-CH-03**: Unsupported/incompatible payload versions must fail closed with explicit error reason and observability signal.
+- **FR-CH-04**: Contract fixtures must cover known provider/telemetry variants including partial/missing token/cost/runtime fields.
+- **FR-CH-05**: Idempotent ingest semantics must be preserved under retries/duplicate payload submission.
+
+### 5.3 Alerting & Analytics Governance Minimums (FR-GV)
+- **FR-GV-01**: Canonical telemetry schema must define source/confidence semantics for token/runtime/cost values.
+- **FR-GV-02**: Cost records must persist `pricing_version` (or equivalent version pointer) for auditability/reproducibility.
+- **FR-GV-03**: Alerting policy must define minimum cadence, severity mapping (`ok|warning|critical`), and dedup/suppression/recovery transitions.
+- **FR-GV-04**: Alert event payload contract must remain stable and include rule id, scope, metric value, threshold, and transition timestamp.
+- **FR-GV-05**: Governance rules/definitions must be documented in-repo and referenced by implementation/tests.
 
 ## 6) Acceptance Criteria (Explicit)
 
-### AC-Ledger
-- Operator can filter and search past sessions by agent/outcome/date and open a session detail view.
-- Detail view includes timeline/transcript with artifact links when present.
-- Ledger returns consistent results after service restart (proves persistence).
+### AC-Data Store (SQLite MVP)
+- JSON-backed storage paths used by V3 ledger/analytics are replaced by SQLite repositories in runtime code path.
+- Migration runs cleanly from empty DB and from a fixture DB at previous schema version.
+- Core V3 endpoints (`/ledger`, `/analytics/usage`, `/analytics/performance`, alerts APIs) return expected results after restart with persisted data intact.
+- Query performance for representative dashboard calls is not materially degraded vs V3 baseline under test dataset.
 
-### AC-Usage Analytics
-- For a selected date range, dashboard shows tokens/runtime/cost totals and trend charts.
-- At least one known test dataset produces expected aggregate totals within acceptable tolerance.
-- Newly completed session metrics appear in analytics within the ingestion SLA.
+### AC-Contract Hardening
+- Invalid ingest payloads (missing required fields, malformed types, unsupported version) return deterministic 4xx with machine-readable error codes.
+- Supported payload variants pass validation and produce normalized records with expected canonical fields.
+- Duplicate ingest requests do not create duplicate ledger session rows or duplicate alert transitions.
+- Contract/integration test suite includes explicit fixtures for drift/partial telemetry cases and passes in CI.
 
-### AC-Performance Matrix
-- Matrix displays model rows with runs, success/failure counts, success rate, median runtime, and median cost.
-- Filtering by date and agent updates matrix correctly.
-- Clicking a failed metric cell/drilldown opens relevant ledger failures.
-
-### AC-Alerting
-- Configured thresholds can be created/updated and persisted.
-- Crossing a threshold creates visible HUD alert with correct severity and metric payload.
-- Repeated evaluations without state change do not spam duplicate alerts.
-- Returning below threshold resolves or downgrades alert state according to rule policy.
+### AC-Governance Minimums
+- Each usage/cost record includes confidence/source metadata and a pricing version reference.
+- Alert rule evaluation behavior follows documented cadence/severity/dedup policy in automated tests.
+- Active alerts feed demonstrates correct transition lifecycle (create, suppress repeat, recover/resolve) under repeated threshold evaluations.
+- Governance docs are present and linked from sprint artifacts (`REQ/ARCH/TASKS` chain).
 
 ### AC-Non-Regression
-- V1 Hero Grid/System Pulse and V2 kill/spawn/reassign remain operational in smoke tests.
+- V1/V2 operational surfaces and V3 intelligence APIs continue to pass smoke/integration checks.
 
-## 7) Out of Scope (V3 Sprint)
-- V4 autonomy features (auto-scale, auto-kill/respawn, budget hard-stop enforcement automation).
-- Full public-deployment auth redesign (Auth V2).
-- Multi-tenant billing/invoicing.
-- Predictive forecasting/ML recommendations beyond descriptive analytics.
-- Cross-project federation (single pane across multiple Helicarrier instances).
+## 7) Out of Scope (V4.1)
+- Postgres production rollout, replication, and multi-node HA topology.
+- Cross-instance federation or multi-tenant data partitioning.
+- Advanced forecasting or ML-driven recommendations.
+- Full taxonomy backfill for all historical task categories.
+- Complete elimination of all legacy log-derived runtime paths unrelated to ingest/normalization hardening in this sprint.
 
 ## 8) Dependencies & Risks
-- Persistent data store selection/migration (SQLite/Postgres) and schema readiness.
-- Upstream provider telemetry completeness for token/cost fields.
-- Stable event ingestion pipeline and idempotent aggregation jobs.
-- Clear metric taxonomy for task categories and success outcome labeling.
+- Data migration strategy from existing JSON artifacts into SQLite seed state.
+- Contract fixture quality/coverage for upstream payload variants.
+- Clear ownership for pricing table/version updates.
+- Retention policy tradeoffs (storage growth vs historical forensic depth).
 
 ## 9) Handoff Status
-**REQ V3 Sprint is ready for @tony (Architect)** to produce updated architecture/design and implementation task breakdown.
+**REQ V4.1 Sprint is ready for @tony (Architect)** to produce architecture updates (`ARCH.md`) and implementation plan (`TASKS.md`) for Hardening & Scale MVP.

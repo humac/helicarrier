@@ -42,6 +42,12 @@ export type SessionUsage = {
   provider?: string;
   pricingVersion?: string;
   computedAt: string;
+  tokenSource?: "provider_reported" | "derived" | "missing";
+  runtimeSource?: "provider_reported" | "derived" | "missing";
+  costSource?: "provider_reported" | "derived" | "missing" | "unknown";
+  tokenConfidence?: "high" | "medium" | "low" | "unknown";
+  runtimeConfidence?: "high" | "medium" | "low" | "unknown";
+  costConfidenceLevel?: "high" | "medium" | "low" | "unknown";
 };
 
 export type AlertMetric = "daily_cost_usd" | "runtime_p95_ms" | "failure_rate";
@@ -66,6 +72,8 @@ export type AlertStatus = "ok" | "warning" | "critical" | "resolved";
 export type AlertState = {
   ruleId: string;
   status: AlertStatus;
+  lifecycleState?: "active" | "suppressed" | "resolved";
+  suppressedUntil?: string;
   lastValue: number;
   lastEvaluatedAt: string;
   lastTransitionAt: string;

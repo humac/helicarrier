@@ -1,83 +1,53 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
+import { getV3Config } from "@/lib/v3/config";
+import { adaptEnvelope, ContractError, normalizeEnvelope } from "@/lib/v3/contract";
 import { normalizeLedgerEntry, normalizeUsage } from "@/lib/v3/normalizer";
 import { requireApiSecret } from "@/lib/v3/auth";
 import { upsertSession } from "@/lib/v3/store";
-import { ProviderPayload, SessionEvent } from "@/lib/v3/types";
 
-type Payload = {
-  session: ProviderPayload;
-  events?: Array<Omit<SessionEvent, "eventId" | "sessionId"> & { eventId?: string }>;
-};
+const idempotencyIndex = new Map<string, string>();
 
-type ValidationIssue = {
-  field: string;
-  message: string;
-};
-
-function validationError(details: ValidationIssue[]) {
-  return NextResponse.json(
-    {
-      error: {
-        code: "VALIDATION_ERROR",
-        message: "Invalid ingest payload",
-        details,
-      },
-    },
-    { status: 400 },
-  );
-}
-
-function getRequiredStringIssues(payload: unknown): ValidationIssue[] {
-  const issues: ValidationIssue[] = [];
-
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    return [{ field: "payload", message: "payload must be an object" }];
-  }
-
-  const candidate = payload as { session?: unknown };
-  if (!candidate.session || typeof candidate.session !== "object" || Array.isArray(candidate.session)) {
-    return [{ field: "session", message: "session object is required" }];
-  }
-
-  const session = candidate.session as Record<string, unknown>;
-  const requiredStringFields: Array<keyof ProviderPayload> = ["sessionId", "state", "agentId", "modelId", "startedAt"];
-
-  for (const field of requiredStringFields) {
-    const value = session[field];
-    if (typeof value !== "string" || value.trim().length === 0) {
-      issues.push({ field: `session.${field}`, message: "must be a non-empty string" });
-    }
-  }
-
-  return issues;
+function formatError(error: ContractError) {
+  return NextResponse.json(error.toBody(), { status: error.status });
 }
 
 export async function POST(request: Request) {
   const authErr = requireApiSecret(request);
   if (authErr) return authErr;
 
-  let payload: Payload;
+  let payload: unknown;
   try {
-    payload = (await request.json()) as Payload;
+    payload = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
   }
 
-  const issues = getRequiredStringIssues(payload);
-  if (issues.length > 0) {
-    return validationError(issues);
+  try {
+    const strict = getV3Config().contractStrict;
+    const envelope = normalizeEnvelope(payload, strict);
+    const adapted = adaptEnvelope(envelope);
+
+    const previous = idempotencyIndex.get(adapted.idempotencyKey);
+    if (previous && previous !== adapted.fingerprint) {
+      throw new ContractError("IDEMPOTENCY_CONFLICT", 409, [{ field: "idempotency_key", message: "conflicting payload for idempotency key" }]);
+    }
+    idempotencyIndex.set(adapted.idempotencyKey, adapted.fingerprint);
+
+    const ledger = normalizeLedgerEntry(adapted.session);
+    const usage = normalizeUsage(adapted.session);
+    const events = (adapted.events ?? []).map((event, index) => ({
+      ...event,
+      eventId: event.eventId ?? randomUUID(),
+      sessionId: adapted.session.sessionId,
+      seq: event.seq ?? index + 1,
+    }));
+
+    await upsertSession(ledger, usage, events);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    if (error instanceof ContractError) return formatError(error);
+    const message = error instanceof Error ? error.message : "failed ingest";
+    return NextResponse.json({ error: { code: "VALIDATION_ERROR", message, details: [] } }, { status: 400 });
   }
-
-  const ledger = normalizeLedgerEntry(payload.session);
-  const usage = normalizeUsage(payload.session);
-  const events = (payload.events ?? []).map((event, index) => ({
-    ...event,
-    eventId: event.eventId ?? randomUUID(),
-    sessionId: payload.session.sessionId,
-    seq: event.seq ?? index + 1,
-  }));
-
-  await upsertSession(ledger, usage, events);
-  return NextResponse.json({ ok: true });
 }

@@ -17,7 +17,7 @@ describe("POST /api/v3/ingest/session", () => {
         "content-type": "application/json",
         "x-secret-key": "test-secret",
       },
-      body: JSON.stringify({}),
+      body: JSON.stringify({ envelope_version: "v1", payload: {} }),
     }));
 
     expect(res.status).toBe(400);
@@ -40,11 +40,14 @@ describe("POST /api/v3/ingest/session", () => {
         "x-secret-key": "test-secret",
       },
       body: JSON.stringify({
-        session: {
-          sessionId: "s-1",
-          agentId: "peter",
-          modelId: "gpt-5",
-          startedAt: "2026-02-18T00:00:00.000Z",
+        envelope_version: "v1",
+        payload: {
+          session: {
+            sessionId: "s-1",
+            agentId: "peter",
+            modelId: "gpt-5",
+            startedAt: "2026-02-18T00:00:00.000Z",
+          },
         },
       }),
     }));
@@ -69,12 +72,15 @@ describe("POST /api/v3/ingest/session", () => {
         "x-secret-key": "test-secret",
       },
       body: JSON.stringify({
-        session: {
-          sessionId: 123,
-          state: 42,
-          agentId: "peter",
-          modelId: "gpt-5",
-          startedAt: "2026-02-18T00:00:00.000Z",
+        envelope_version: "v1",
+        payload: {
+          session: {
+            sessionId: 123,
+            state: 42,
+            agentId: "peter",
+            modelId: "gpt-5",
+            startedAt: "2026-02-18T00:00:00.000Z",
+          },
         },
       }),
     }));

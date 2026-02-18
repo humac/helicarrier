@@ -11,6 +11,11 @@ status.json
 # Logs
 *.log
 
+# Local DB/runtime artifacts
+web/data/*.sqlite
+web/data/*.sqlite-shm
+web/data/*.sqlite-wal
+
 # Node/Next artifacts
 web/node_modules/
 web/.next/

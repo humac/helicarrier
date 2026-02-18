@@ -6,55 +6,61 @@ Mission Control dashboard for OpenClaw.
 
 - **V1 Watchtower:** ✅ Live
 - **V2 Command & Control:** ✅ Delivered
-- **V3 Intelligence:** ✅ Delivered (QA: full pass; release blocker H-011 closed via GitHub #4)
+- **V3 Intelligence:** ✅ Delivered
+- **V4.1 Hardening & Scale:** ✅ Delivered (**QA PASS**)
 
-## V3 Intelligence (Delivered)
+## V4.1 Hardening Highlights (Delivered)
 
-Helicarrier now includes an Intelligence layer for history, analytics, and operator alerts.
+Helicarrier V4.1 hardens runtime reliability, ingest contracts, and analytics governance.
 
-### 1) Session History Ledger
-- `GET /api/v3/ledger`
-- `GET /api/v3/ledger/:sessionId`
-- Search/filter/sort/pagination for historical sessions.
+### 1) Data Platform Hardening
+- SQLite repository + migration runner added.
+- Startup is **fail-closed** on migration/init failure (no partial degraded write path).
+- Baseline schema/indexes included for ledger/analytics/alerts persistence.
+- Optional staged JSON -> SQLite importer supports idempotent import behavior.
 
-### 2) Usage Analytics
-- `GET /api/v3/analytics/usage`
-- Token/runtime/cost totals plus daily usage series.
+### 2) Contract & Ingestion Reliability
+- Strict ingest contract envelope support with version adapters (`v1`, `v2`).
+- Deterministic validation responses for malformed payloads.
+- Unsupported contract versions are explicitly rejected.
+- Idempotency conflict protection enforced for reused keys with mismatched payloads.
 
-### 3) Model Performance Matrix
-- `GET /api/v3/analytics/performance`
-- Success/failure rates by model with sample-size caveats and drilldown params.
+### 3) Governance Hardening
+- Cost-bearing usage rows require `pricingVersion`.
+- Usage telemetry tracks provenance/source + confidence metadata.
+- Alert lifecycle and suppression state persistence is formalized.
 
-### 4) Alerting / Threshold Engine
-- `GET/POST /api/v3/alerts/rules`
-- `PATCH /api/v3/alerts/rules/:ruleId`
-- `GET /api/v3/alerts/active`
-- Dedup/suppression + state transition support for active HUD alerts.
+### 4) Non-Regression
+- Existing V1/V2/V3 surfaces remain green.
+- `POST /api/control/model` route is implemented and test-covered.
 
-### 5) Ingestion Path
-- `POST /api/v3/ingest/session`
-- Canonical normalization + idempotent session upsert into the V3 store.
-
-## Runtime & Environment Notes
+## Runtime & Configuration Notes (V4.1)
 
 ### Required server auth
-All protected APIs (including `/api/v3/*`) require:
+Protected APIs require a configured server secret and `x-secret-key` request header match.
 
 - `HELICARRIER_SECRET` (primary)
-- `OPENCLAW_AUTH_TOKEN` (optional server fallback)
+- `OPENCLAW_AUTH_TOKEN` (optional fallback)
 
-Requests must provide `x-secret-key` matching configured server secret.
+### Persistence backend selection
+- `HELICARRIER_ENABLE_SQLITE=true` -> use SQLite repository.
+- otherwise -> JSON repository path remains available.
 
-### V3 persistence (current)
-- V3 data is persisted to file-backed storage at:
-  - `web/data/v3-intelligence.json`
-- This is restart-safe for local/single-node operation.
-- Migration to SQLite/Postgres remains tracked as V3 hardening debt.
+### SQLite runtime configuration
+- `HELICARRIER_DB_PATH` controls SQLite database file location.
+- `HELICARRIER_ENABLE_JSON_IMPORT=true` enables one-time staged JSON import during SQLite initialization.
 
-### Container/runtime notes
-- Default URL: `http://localhost:3000`
-- Runtime: Next.js 16 in Docker (or local Node runtime)
-- Docker image/build stability fixes for Debian Bookworm are applied.
+### Ingest contract behavior (strict)
+- Missing `envelope_version` -> `400 VALIDATION_ERROR`
+- Unsupported contract version -> `422 UNSUPPORTED_CONTRACT_VERSION`
+- Same `idempotency_key` + changed payload -> `409 IDEMPOTENCY_CONFLICT`
+
+## QA Evidence (V4.1)
+
+- `npm test` -> ✅ **47/47 passed**
+- `npm run lint` -> ✅ pass
+- Integration checks -> ✅ pass (contract, runtime persistence behavior, governance fields, non-regression checks)
+- Final QA verdict -> ✅ **PASS**
 
 ## Containerized run (recommended)
 
@@ -64,8 +70,12 @@ Requests must provide `x-secret-key` matching configured server secret.
 HELICARRIER_SECRET=change-me
 NEXT_PUBLIC_HELICARRIER_SECRET=change-me
 OPENCLAW_HOME=$HOME/.openclaw
-# Optional server fallback
 OPENCLAW_AUTH_TOKEN=
+
+# V4.1 persistence/config toggles
+HELICARRIER_ENABLE_SQLITE=true
+HELICARRIER_DB_PATH=/app/web/data/helicarrier.sqlite
+HELICARRIER_ENABLE_JSON_IMPORT=false
 ```
 
 2. Build and run:
@@ -73,19 +83,6 @@ OPENCLAW_AUTH_TOKEN=
 ```bash
 docker compose up --build -d
 ```
-
-3. Quick checks:
-
-```bash
-curl -I http://localhost:3000
-curl -I http://localhost:3000/api/v3/ledger
-curl -I -H "x-secret-key: change-me" http://localhost:3000/api/v3/ledger
-```
-
-Expected:
-- `/` -> `200`
-- `/api/v3/ledger` without key -> `401`
-- `/api/v3/ledger` with valid key -> `200`
 
 ## Local development
 
@@ -101,6 +98,9 @@ Create `web/.env.local`:
 HELICARRIER_SECRET=change-me
 NEXT_PUBLIC_HELICARRIER_SECRET=change-me
 OPENCLAW_AUTH_TOKEN=
+HELICARRIER_ENABLE_SQLITE=true
+HELICARRIER_DB_PATH=./data/helicarrier.sqlite
+HELICARRIER_ENABLE_JSON_IMPORT=false
 ```
 
 ## Test & lint
@@ -111,6 +111,6 @@ npm test
 npm run lint
 ```
 
-## Known V3 hardening debt
+## Current Active Debt
 
-See `ISSUES.md` for active V3-only blockers/dependencies (contract drift, API migration completion, persistent DB migration, telemetry normalization, ingest validation gap, alert governance, taxonomy, pricing governance).
+See `ISSUES.md` for active post-V4.1 debt and next hardening targets.

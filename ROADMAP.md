@@ -29,34 +29,33 @@
 - [x] **Alerts**: Threshold rules, active alerts feed, dedup/suppression lifecycle.
 - [x] **Intelligence UI hooks**: Dashboard Intelligence panel with usage/matrix/alerts.
 
-**QA Outcome:** PASS (40/40 tests + lint passing). Prior hardening blocker H-011 (ingest payload validation) is fixed; missing `session.state` now returns `400` as expected (GitHub #4 closed).
+---
+
+## V4.1: Hardening & Scale (Status: ✅ Complete)
+**Objective**: Production reliability and data integrity baseline for Intelligence.
+
+- [x] SQLite repository + migration runner (fail-closed startup).
+- [x] Repository abstraction and config-based backend selection.
+- [x] Staged JSON -> SQLite import path with idempotent semantics.
+- [x] Versioned ingest envelope contract hardening (`v1`, `v2`).
+- [x] Ingest idempotency conflict enforcement.
+- [x] Governance minimums (`pricingVersion`, telemetry provenance/confidence).
+- [x] Alert lifecycle/suppression persistence hardening.
+- [x] Non-regression coverage including control model route.
+
+**QA Outcome:** ✅ **PASS** (**47/47 tests + lint + integration/runtime checks**).
 
 ---
 
-## V4: Hardening & Scale (Next Phase)
-**Objective**: Production reliability and data integrity for Intelligence.
+## V4.2: Scale & Operability (Next Phase Target)
+**Objective**: Production-scale operations, observability, and migration confidence at volume.
 
-### 4.1 Data Platform Hardening
-- [ ] Migrate V3 persistence from JSON file to SQLite/Postgres.
-- [ ] Add schema migrations, indexes, and retention policy.
-
-### 4.2 Contract & Ingestion Reliability
-- [ ] Finalize adapter/version guards for Gateway/RPC contract drift.
-- [x] Close ingest validation gap for required fields (`session.state`, etc.).
-- [ ] Expand integration/contract fixtures for telemetry/provider variants.
-
-### 4.3 Analytics Governance
-- [ ] Canonical telemetry normalization (tokens/runtime/cost confidence).
-- [ ] Task category taxonomy for segmented model performance.
-- [ ] Versioned pricing table + `pricing_version` auditability.
-
-### 4.4 Alerting Trustworthiness
-- [ ] Formalize threshold cadence/severity policy.
-- [ ] Validate dedup/suppression/recovery transitions at scale.
-
-### 4.5 Runtime Operations
-- [ ] Complete migration off legacy log-derived paths where API equivalents exist.
-- [ ] Produce production deployment checklist and runbook.
+### 4.2 Focus Areas
+- [ ] Postgres production profile and migration path beyond SQLite baseline.
+- [ ] Migration/cutover runbook hardening (backup/restore drills, rollback automation, parity checks).
+- [ ] Expanded contract fixture matrix for upstream/provider payload variants.
+- [ ] Deep observability for ingest/analytics/alert pipelines (SLOs, error budgets, tracing).
+- [ ] Alert governance tuning under load (cadence, suppression policy, operator UX thresholds).
 
 ---
 

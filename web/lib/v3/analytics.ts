@@ -54,6 +54,12 @@ export function buildUsageAnalytics(ledger: SessionLedgerEntry[], usage: Session
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, values]) => ({ date, ...values }));
 
+  const provenance = {
+    token: usage.filter((u) => u.tokenSource).reduce<Record<string, number>>((acc, u) => ({ ...acc, [u.tokenSource as string]: (acc[u.tokenSource as string] ?? 0) + 1 }), {}),
+    runtime: usage.filter((u) => u.runtimeSource).reduce<Record<string, number>>((acc, u) => ({ ...acc, [u.runtimeSource as string]: (acc[u.runtimeSource as string] ?? 0) + 1 }), {}),
+    cost: usage.filter((u) => u.costSource).reduce<Record<string, number>>((acc, u) => ({ ...acc, [u.costSource as string]: (acc[u.costSource as string] ?? 0) + 1 }), {}),
+  };
+
   return {
     totals: {
       runs: selected.length,
@@ -61,6 +67,7 @@ export function buildUsageAnalytics(ledger: SessionLedgerEntry[], usage: Session
       runtimeMs: totalRuntimeMs,
       costUsd: Number(totalCostUsd.toFixed(6)),
     },
+    provenance,
     series,
   };
 }
