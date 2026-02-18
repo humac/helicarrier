@@ -1,88 +1,110 @@
-# Project Helicarrier - Requirements (V2 Sprint)
+# Project Helicarrier - Requirements (V3 Sprint)
 
 ## 1) Product Objective
-Evolve Helicarrier from a passive monitoring HUD (V1) into an active **Command & Control** cockpit (V2) that allows operators to:
-- terminate unhealthy sessions safely,
-- inject new tasks quickly,
-- and reassign model runtime per agent/session.
+Evolve Helicarrier from Command & Control (V2) into an **Intelligence** layer (V3) that enables:
+- forensic session review,
+- cost/runtime visibility,
+- model effectiveness comparison,
+- and proactive budget/performance alerting.
 
-## 2) Sprint Scope (V2)
-This sprint implements three operator features:
-1. **Kill Switch** (Tactical Override)
-2. **Task Input** (Jarvis Terminal)
-3. **Model Selector** (Agent Reassignment)
-
-Out of scope for this sprint:
-- Historical analytics (V3)
-- Auto-healing/autonomy (V4)
-- Full auth redesign (Auth V2)
+## 2) Sprint Scope (V3)
+This sprint implements four V3 capabilities:
+1. **Session History Ledger**
+2. **Usage Analytics** (tokens, runtime, cost)
+3. **Model Performance Matrix**
+4. **Alerting Thresholds**
 
 ## 3) User Stories
 
-### US-201: Kill Switch
-As an operator, I want to terminate a running agent session from the dashboard, so I can stop runaway, unsafe, or stuck work immediately.
+### US-301: Session History Ledger
+As an operator, I want a searchable history of completed/past sessions so I can audit outcomes and investigate failures.
 
-### US-202: Task Input
-As an operator, I want to submit a task command from the dashboard to spawn/deploy work to agents, so I can issue interventions without leaving Helicarrier.
+### US-302: Usage Analytics
+As an operator, I want usage analytics (tokens/runtime/cost) over time so I can identify waste and control spending.
 
-### US-203: Model Selector
-As an operator, I want to change the model assigned to an active agent/session, so I can recover from performance/compliance issues quickly.
+### US-303: Model Performance Matrix
+As an operator, I want to compare model success rates by task type so I can choose the most reliable model for future runs.
+
+### US-304: Alerting Thresholds
+As an operator, I want configurable alert thresholds for spend/runtime/error signals so I can intervene before budgets or SLAs are breached.
 
 ## 4) Functional Requirements
 
-### 4.1 Kill Switch (FR-KS)
-- **FR-KS-01**: Each active session card must display a visible "Kill"/"Terminate" action.
-- **FR-KS-02**: Clicking Kill must open a confirmation modal before any termination call is sent.
-- **FR-KS-03**: Confirmation modal must include:
-  - Session/agent identifier,
-  - warning text about irreversible stop,
-  - explicit destructive CTA (e.g., red "Terminate" button),
-  - cancel option.
-- **FR-KS-04**: Termination API must only execute after explicit confirmation.
-- **FR-KS-05**: API integration must call the process/session termination path (`openclaw process kill <pid>` or server adapter equivalent).
-- **FR-KS-06**: On success, UI must reflect terminated state within normal refresh/realtime cycle.
-- **FR-KS-07**: On failure, UI must show actionable error feedback and keep session state unchanged.
-- **FR-KS-08**: Prevent duplicate termination requests while one is in-flight (button disabled/loading).
+### 4.1 Session History Ledger (FR-LG)
+- **FR-LG-01**: System must persist session metadata and lifecycle outcomes for completed and terminated sessions.
+- **FR-LG-02**: Ledger UI must support filtering by agent, outcome (`success|failed|killed|cancelled`), model, and date range.
+- **FR-LG-03**: Ledger UI must support keyword search by session id/title/task text.
+- **FR-LG-04**: Session detail view must show transcript/event timeline and links to produced artifacts/diffs when available.
+- **FR-LG-05**: Sorting must support newest-first by default and toggling by runtime/cost.
+- **FR-LG-06**: Empty/error states must be explicit and operator-readable.
 
-### 4.2 Task Input (FR-TI)
-- **FR-TI-01**: Dashboard must provide a command/task input entry area (Jarvis Terminal).
-- **FR-TI-02**: Input must accept commands in approved format, including examples:
-  - `spawn @tony "Design a login page"`
-  - `deploy @peter "Fix bug #42"`
-- **FR-TI-03**: Submission must validate non-empty command and basic format before API call.
-- **FR-TI-04**: On submit, backend must invoke session spawn/dispatch flow (`openclaw sessions spawn` or server adapter equivalent).
-- **FR-TI-05**: UI must show command execution state: idle, submitting, success, error.
-- **FR-TI-06**: On success, newly created/affected session must appear in dashboard without manual page reload.
-- **FR-TI-07**: On failure, return clear reason and preserve input text for correction/resubmit.
-- **FR-TI-08**: Must support keyboard submit (`Enter`) and explicit button submit.
+### 4.2 Usage Analytics (FR-UA)
+- **FR-UA-01**: System must capture token usage per session (prompt/completion/total where available).
+- **FR-UA-02**: System must capture runtime duration per session and aggregate by day/agent/model.
+- **FR-UA-03**: System must estimate or record cost per session and provide daily/weekly totals.
+- **FR-UA-04**: Dashboard must provide time-series visualization for tokens, runtime, and cost.
+- **FR-UA-05**: Analytics view must allow date-range and dimension filters (agent/model/task label).
+- **FR-UA-06**: Data freshness target: analytics reflect newly completed sessions within agreed ingestion window (target ≤ 5 minutes).
 
-### 4.3 Model Selector (FR-MS)
-- **FR-MS-01**: Each manageable agent/session must expose a model selection control (dropdown minimum; drag/drop optional).
-- **FR-MS-02**: Selector must list allowed models from configured roster/policy.
-- **FR-MS-03**: Current model must be visible before changes.
-- **FR-MS-04**: Changing model must require explicit apply/confirm action (to prevent accidental switch).
-- **FR-MS-05**: Backend must persist/apply reassignment via OpenClaw-compatible routing/config path.
-- **FR-MS-06**: UI must show in-flight status and block repeated apply while update is pending.
-- **FR-MS-07**: On success, updated model must display immediately in card/detail state.
-- **FR-MS-08**: On failure, UI must surface error and revert selector to last confirmed model.
+### 4.3 Model Performance Matrix (FR-PM)
+- **FR-PM-01**: System must compute success rate by model over selectable date ranges.
+- **FR-PM-02**: Matrix must include at minimum: total runs, success count, failure count, success rate, median runtime, median cost.
+- **FR-PM-03**: Matrix must support segmentation by agent and task category when metadata exists.
+- **FR-PM-04**: UI must expose confidence caveat when sample size is below threshold (e.g., n < 5).
+- **FR-PM-05**: Failed runs must be drillable to corresponding ledger entries.
+
+### 4.4 Alerting Thresholds (FR-AL)
+- **FR-AL-01**: Operators must be able to configure threshold rules for daily cost, runtime overrun, and failure-rate spikes.
+- **FR-AL-02**: Thresholds must support scope at global and per-agent/per-model levels.
+- **FR-AL-03**: Alert evaluation must run on ingestion/update and trigger state transitions (`ok|warning|critical`).
+- **FR-AL-04**: Active alerts must be visible in dashboard HUD with timestamp and triggering metric.
+- **FR-AL-05**: Alert notifications must include metric value, threshold, and affected scope.
+- **FR-AL-06**: Alert dedup/suppression must prevent repeated noisy notifications for unchanged violations.
 
 ## 5) Cross-Feature Requirements
-- **FR-CF-01**: All mutating actions (kill, spawn/deploy, model change) must be auditable via server logs.
-- **FR-CF-02**: All user-facing errors must be non-silent and readable by operators.
-- **FR-CF-03**: UI interactions must be mobile-responsive and remain usable on small viewports.
-- **FR-CF-04**: Existing V1 monitoring features must remain functional (no regression to Hero Grid/System Pulse).
+- **FR-CF-01**: All analytics inputs and derived metrics must be auditable and traceable to source sessions.
+- **FR-CF-02**: Metric definitions (success, runtime, cost) must be documented and consistent across UI/API.
+- **FR-CF-03**: Historical queries must be backed by persistent storage (no log-only dependency).
+- **FR-CF-04**: Existing V1/V2 operational features must remain functional (no regression to monitoring/control actions).
 
-## 6) Acceptance Criteria (Sprint-Level)
-- Operator can terminate an active session only after confirmation modal approval.
-- Operator can submit valid task commands from dashboard and see resulting session updates.
-- Operator can change model assignment for a target agent/session and observe applied state.
-- For each feature, success and failure paths are visible and testable in UI.
-- No breaking regressions to V1 watchtower baseline.
+## 6) Acceptance Criteria (Explicit)
 
-## 7) Dependencies & Risks
-- Gateway/API contract stability for kill/spawn/reassign operations.
-- Backend adapter must normalize upstream responses to stable frontend contract.
-- Permission/policy constraints may limit eligible models per agent.
+### AC-Ledger
+- Operator can filter and search past sessions by agent/outcome/date and open a session detail view.
+- Detail view includes timeline/transcript with artifact links when present.
+- Ledger returns consistent results after service restart (proves persistence).
 
-## 8) Handoff Status
-**REQ V2 Sprint is ready for @tony (Architect)** to produce updated architecture/design and task breakdown.
+### AC-Usage Analytics
+- For a selected date range, dashboard shows tokens/runtime/cost totals and trend charts.
+- At least one known test dataset produces expected aggregate totals within acceptable tolerance.
+- Newly completed session metrics appear in analytics within the ingestion SLA.
+
+### AC-Performance Matrix
+- Matrix displays model rows with runs, success/failure counts, success rate, median runtime, and median cost.
+- Filtering by date and agent updates matrix correctly.
+- Clicking a failed metric cell/drilldown opens relevant ledger failures.
+
+### AC-Alerting
+- Configured thresholds can be created/updated and persisted.
+- Crossing a threshold creates visible HUD alert with correct severity and metric payload.
+- Repeated evaluations without state change do not spam duplicate alerts.
+- Returning below threshold resolves or downgrades alert state according to rule policy.
+
+### AC-Non-Regression
+- V1 Hero Grid/System Pulse and V2 kill/spawn/reassign remain operational in smoke tests.
+
+## 7) Out of Scope (V3 Sprint)
+- V4 autonomy features (auto-scale, auto-kill/respawn, budget hard-stop enforcement automation).
+- Full public-deployment auth redesign (Auth V2).
+- Multi-tenant billing/invoicing.
+- Predictive forecasting/ML recommendations beyond descriptive analytics.
+- Cross-project federation (single pane across multiple Helicarrier instances).
+
+## 8) Dependencies & Risks
+- Persistent data store selection/migration (SQLite/Postgres) and schema readiness.
+- Upstream provider telemetry completeness for token/cost fields.
+- Stable event ingestion pipeline and idempotent aggregation jobs.
+- Clear metric taxonomy for task categories and success outcome labeling.
+
+## 9) Handoff Status
+**REQ V3 Sprint is ready for @tony (Architect)** to produce updated architecture/design and implementation task breakdown.

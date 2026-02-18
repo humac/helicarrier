@@ -1,107 +1,131 @@
-# Project Helicarrier Issues
+# Project Helicarrier Issues (Active V3 Debt / Blockers Only)
 
 ## Open
 
-### [H-002] Gateway RPC contract drift risk (realtime + control plane)
+### [H-002] Gateway RPC contract drift risk (status + telemetry ingestion)
 
 **Status:** Open  
-**Created:** 2026-02-17  
 **Priority:** High
 
 **Risk:**
-Helicarrier depends on Gateway RPC for status and V2 control actions (kill/spawn/reassign). Method names and payloads may drift across OpenClaw builds.
+Upstream Gateway/OpenClaw RPC payload changes can break normalization and downstream Intelligence metrics.
 
-**Mitigation:**
-- Keep a stable Helicarrier server API contract for frontend consumption.
-- Isolate all upstream mapping in adapter layer (`gatewayClient` + mappers).
-- Add mapper/contract tests for canonical states and V2 action responses.
-- Return degraded but explicit errors when upstream is incompatible.
+**Impact on V3:**
+Ledger/history and analytics correctness can degrade if upstream fields drift.
 
-**Exit Criteria:**
-- Contract verified against deployment target build.
-- Canonical status mapping remains stable (`running|idle|failed|done`).
-- V2 action endpoints remain frontend-stable despite upstream changes.
+**Required closure:**
+- Adapter-level version guards and compatibility handling.
+- Contract fixture coverage for supported upstream payload variants.
+- Explicit degraded/error behavior when incompatible.
 
 ---
 
-### [H-003] Docker build failure on Debian Bookworm (user creation syntax mismatch)
+### [H-004] Complete migration from legacy log parsing to official API paths
 
 **Status:** Open  
-**Created:** 2026-02-18  
-**Priority:** Medium
-
-**Failure:**
-Docker build uses Alpine-style user/group commands (`addgroup -S`, `adduser -S`) that fail on Debian Bookworm.
-
-**Impact:**
-Unreliable local/CI container builds.
-
-**Proposed Fix:**
-Use Debian-compatible `groupadd`/`useradd` flow (or equivalent), then validate with local `docker build`.
-
-**Exit Criteria:**
-- Docker image builds on Bookworm without manual patching.
-- CI/local build doc updated with validated command.
-
----
-
-### [H-004] V1 technical debt carry-over: Log parsing → official API migration
-
-**Status:** Open  
-**Created:** 2026-02-18  
-**Priority:** Medium
+**Priority:** High
 
 **Debt:**
-Legacy log-parsing approach must be fully retired in favor of official OpenClaw API usage.
+Residual log-derived code paths can conflict with API-derived truth.
 
-**Impact on V2:**
-Control-plane reliability and maintainability degrade if mixed data/control sources persist.
+**Impact on V3:**
+Mixed data provenance weakens confidence in ledger and analytics outcomes.
 
-**Action:**
-- Remove remaining log-derived control/status logic where API equivalents exist.
-- Centralize API client and response normalization.
-
-**Exit Criteria:**
-- No production path depends on log parsing for live control-plane decisions.
-- Adapter tests pass for all supported API versions.
+**Required closure:**
+- Remove production dependencies on log parsing where API equivalents exist.
+- Centralize API client/normalization/error handling.
 
 ---
 
-### [H-005] V1 technical debt carry-over: Auth V2 for public deployment
+### [H-006] Persistent state database for V3 ledger/analytics
 
 **Status:** Open  
-**Created:** 2026-02-18  
-**Priority:** Low
+**Priority:** High
 
-**Debt:**
-Current auth posture is insufficient for broader/public deployment.
+**Dependency:**
+Current file-backed JSON store is suitable for local operation but not production-grade scale/governance.
 
-**Action:**
-- Plan and implement Auth V2 (e.g., NextAuth or equivalent) when moving beyond trusted internal usage.
+**Impact on V3:**
+Limits query performance, migration discipline, and operational durability expectations.
 
-**Exit Criteria:**
-- Auth strategy documented and implemented per threat model.
-- Session/token handling reviewed by QA/security.
-
----
-
-### [H-006] V1 technical debt carry-over: Persistent state database for V3 readiness
-
-**Status:** Open  
-**Created:** 2026-02-18  
-**Priority:** Medium
-
-**Debt:**
-Ephemeral/log-based state is insufficient for history, analytics, and cost reporting planned in V3.
-
-**Action:**
+**Required closure:**
 - Introduce SQLite/Postgres backing store.
-- Define schema for sessions, events, costs, and model outcomes.
+- Define schema/indexes for ledger + analytics queries.
+- Add migration + retention strategy.
 
-**Exit Criteria:**
-- Persistent storage integrated for required entities.
-- Data retention/query path supports V3 ledger and heatmap features.
+---
+
+### [H-007] Telemetry normalization gap (tokens/runtime/cost)
+
+**Status:** Open  
+**Priority:** High
+
+**Risk:**
+Provider telemetry fields differ and may be partial/missing.
+
+**Impact on V3:**
+Usage and cost metrics can become incomparable or misleading.
+
+**Required closure:**
+- Canonical telemetry schema with nullable/derived fields.
+- Provider-specific mappers + fallback estimation policy.
+- Confidence/source annotations in reported metrics.
+
+---
+
+### [H-008] Alerting engine governance (threshold cadence + dedup policy)
+
+**Status:** Open  
+**Priority:** Medium
+
+**Risk:**
+Without deterministic policy, alerts can be noisy, late, or suppressed incorrectly.
+
+**Impact on V3:**
+Operator trust in alerting degrades.
+
+**Required closure:**
+- Define evaluation cadence/triggers and severity model.
+- Verify dedup/suppression/recovery lifecycle under repeated violations.
+- Lock stable HUD notification payload contract.
+
+---
+
+### [H-009] Task category taxonomy for performance segmentation
+
+**Status:** Open  
+**Priority:** Medium
+
+**Dependency:**
+Performance matrix segmentation requires controlled `task_category` labels.
+
+**Impact on V3:**
+Cross-task model comparisons are noisy without taxonomy discipline.
+
+**Required closure:**
+- Define canonical category set + mapping rules.
+- Add `uncategorized` fallback and labeling guidance.
+- Backfill/migrate historical sessions where feasible.
+
+---
+
+### [H-010] Pricing table/version governance for cost estimation
+
+**Status:** Open  
+**Priority:** Medium
+
+**Dependency:**
+Cost estimates require versioned model pricing metadata.
+
+**Impact on V3:**
+Cost analytics lose reproducibility/auditability over time.
+
+**Required closure:**
+- Introduce versioned pricing configuration.
+- Persist `pricing_version` + confidence per usage row/session.
+- Define update cadence and owner.
 
 ## Notes
-- Closed/duplicate items should be removed or moved to an archive section in future updates.
-- This file currently tracks active issues only.
+- This file intentionally tracks **only active V3 debt/blockers**.
+- H-011 is no longer an active blocker: fixed and closed via GitHub issue **#4** on 2026-02-18.
+- Non-V3 items are excluded from this closeout view.

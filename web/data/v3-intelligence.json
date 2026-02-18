@@ -1,0 +1,100 @@
+{
+  "ledger": [
+    {
+      "sessionId": "qa-v3-s1",
+      "agentId": "peter",
+      "agentLabel": "peter",
+      "modelId": "gpt-5.3-codex",
+      "taskText": "qa",
+      "status": "success",
+      "startedAt": "2026-02-18T19:20:00.000Z",
+      "endedAt": "2026-02-18T19:21:00.000Z",
+      "runtimeMs": 60000,
+      "artifactCount": 0,
+      "ingestedAt": "2026-02-18T19:27:23.033Z"
+    },
+    {
+      "sessionId": "h011-smoke",
+      "agentId": "a1",
+      "agentLabel": "a1",
+      "modelId": "gpt-5",
+      "status": "running",
+      "startedAt": "2026-02-18T00:00:00Z",
+      "runtimeMs": 0,
+      "artifactCount": 0,
+      "ingestedAt": "2026-02-18T22:02:54.533Z"
+    }
+  ],
+  "events": [],
+  "usage": [
+    {
+      "sessionId": "qa-v3-s1",
+      "promptTokens": 100,
+      "completionTokens": 200,
+      "totalTokens": 300,
+      "runtimeMs": 60000,
+      "costUsd": 0.0123,
+      "costConfidence": "exact",
+      "computedAt": "2026-02-18T19:27:23.033Z"
+    },
+    {
+      "sessionId": "h011-smoke",
+      "runtimeMs": 0,
+      "costConfidence": "unknown",
+      "computedAt": "2026-02-18T22:02:54.533Z"
+    }
+  ],
+  "alertRules": [
+    {
+      "ruleId": "4a8930a6-ee53-4976-a375-7e4c90aeb95f",
+      "enabled": true,
+      "metric": "failure_rate",
+      "scopeType": "global",
+      "warnThreshold": 0.1,
+      "criticalThreshold": 0.5,
+      "window": "24h",
+      "comparison": "gte",
+      "dedupCooldownSec": 300,
+      "createdAt": "2026-02-18T19:27:30.549Z",
+      "updatedAt": "2026-02-18T19:27:30.549Z"
+    },
+    {
+      "ruleId": "5f193e7c-6bba-402c-bbf1-cb82a0f1ea7a",
+      "enabled": true,
+      "metric": "runtime_p95_ms",
+      "scopeType": "global",
+      "warnThreshold": 1000,
+      "criticalThreshold": 5000,
+      "window": "24h",
+      "comparison": "gte",
+      "dedupCooldownSec": 300,
+      "createdAt": "2026-02-18T19:27:35.021Z",
+      "updatedAt": "2026-02-18T19:27:35.021Z"
+    },
+    {
+      "ruleId": "86dade16-de25-4336-abf0-68b088da111f",
+      "enabled": false,
+      "metric": "runtime_p95_ms",
+      "scopeType": "global",
+      "warnThreshold": 1000,
+      "criticalThreshold": 5000,
+      "window": "24h",
+      "comparison": "gte",
+      "dedupCooldownSec": 300,
+      "createdAt": "2026-02-18T19:27:40.577Z",
+      "updatedAt": "2026-02-18T19:27:40.659Z"
+    }
+  ],
+  "alertStates": [
+    {
+      "ruleId": "4a8930a6-ee53-4976-a375-7e4c90aeb95f",
+      "status": "ok",
+      "lastValue": 0,
+      "lastEvaluatedAt": "2026-02-18T19:27:30.635Z",
+      "lastTransitionAt": "2026-02-18T19:27:30.635Z",
+      "lastNotifiedAt": "2026-02-18T19:27:30.635Z",
+      "activeFingerprint": "4a8930a6-ee53-4976-a375-7e4c90aeb95f:ok:0.0000",
+      "deduped": false
+    }
+  ]
+}

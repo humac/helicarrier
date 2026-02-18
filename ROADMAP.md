@@ -2,65 +2,63 @@
 
 > **"I am Iron Man."** - The transition from suit to system.
 
-## V1: The Watchtower (Current Status: ✅ Live)
+## V1: The Watchtower (Status: ✅ Live)
 **Objective**: Passive monitoring and visualization.
 - [x] **Hero Grid**: Live status of active agents.
 - [x] **System Pulse**: Real-time log streaming.
-- [x] **Secure Link**: Token-authenticated API (Log-based).
+- [x] **Secure Link**: Token-authenticated API.
 - [x] **Stark HUD**: Glassmorphism UI/UX.
 
 ---
 
 ## V2: Command & Control (Status: ✅ Done)
-**Objective**: Active intervention and task management. Turn the HUD into a cockpit.
+**Objective**: Active intervention and task management.
 
-### 2.1 Tactical Override ("Kill Switch")
-- [x] **Feature**: Button on `AgentCard` to immediately terminate a session.
-- **Backend**: API route to execute `openclaw process kill <pid>`.
-- **UX**: "Are you sure?" modal with a red "Terminate" confirmation.
-
-### 2.2 Task Injection ("Jarvis Terminal")
-- [x] **Feature**: A command line input in the Dashboard to spawn new agents.
-- **Capabilities**:
-  - `spawn @tony "Design a login page"`
-  - `deploy @peter "Fix bug #42"`
-- **Backend**: Hooks into `openclaw sessions spawn`.
-
-### 2.3 Agent Reassignment
-- **Feature**: Drag-and-drop or dropdown menu to change an agent's active model.
-- **Use Case**: "Peter is failing with GPT-3.5; switch him to GPT-4 immediately."
+- [x] **Tactical Override (Kill Switch)**
+- [x] **Task Injection (Jarvis Terminal)**
+- [x] **Control route auth + validation**
 
 ---
 
-## V3: Intelligence (Analytics & History) — Next Priority
+## V3: Intelligence (Status: ✅ Done)
 **Objective**: Cost optimization and forensic analysis.
 
-### 3.1 The Ledger (Session History)
-- **Feature**: Searchable archive of all past sessions.
-- **Filter**: By Agent, Outcome (Success/Fail), or Date.
-- **Detail View**: Click a session to see the full transcript and artifact diffs.
+- [x] **Ledger**: Searchable session history + detail API.
+- [x] **Usage Analytics**: Token/runtime/cost totals + daily series.
+- [x] **Model Performance Matrix**: Success/failure and sample-aware scoring.
+- [x] **Alerts**: Threshold rules, active alerts feed, dedup/suppression lifecycle.
+- [x] **Intelligence UI hooks**: Dashboard Intelligence panel with usage/matrix/alerts.
 
-### 3.2 Cost Heatmap
-- **Feature**: Visualization of Token Usage vs. Time.
-- **Insight**: Identify which agents/tasks are burning the most budget.
-- **Alerts**: "Daily Budget Exceeded" notifications on the HUD.
-
-### 3.3 Model Performance Matrix
-- **Feature**: Success rate tracking per model.
-- **Data**: "Gemini-Pro passed 8/10 coding tasks; GPT-4 passed 9/10."
+**QA Outcome:** PASS (40/40 tests + lint passing). Prior hardening blocker H-011 (ingest payload validation) is fixed; missing `session.state` now returns `400` as expected (GitHub #4 closed).
 
 ---
 
-## V4: Autonomy (Self-Healing)
-**Objective**: Automated system regulation.
+## V4: Hardening & Scale (Next Phase)
+**Objective**: Production reliability and data integrity for Intelligence.
 
-- **Auto-Scale**: Automatically spawn more @peter instances if the task queue grows.
-- **Sentinel Protocol**: If an agent loops for >10 mins without output, auto-kill and respawn.
-- **Budget Lock**: Hard stop agents when project budget hits 100%.
+### 4.1 Data Platform Hardening
+- [ ] Migrate V3 persistence from JSON file to SQLite/Postgres.
+- [ ] Add schema migrations, indexes, and retention policy.
+
+### 4.2 Contract & Ingestion Reliability
+- [ ] Finalize adapter/version guards for Gateway/RPC contract drift.
+- [x] Close ingest validation gap for required fields (`session.state`, etc.).
+- [ ] Expand integration/contract fixtures for telemetry/provider variants.
+
+### 4.3 Analytics Governance
+- [ ] Canonical telemetry normalization (tokens/runtime/cost confidence).
+- [ ] Task category taxonomy for segmented model performance.
+- [ ] Versioned pricing table + `pricing_version` auditability.
+
+### 4.4 Alerting Trustworthiness
+- [ ] Formalize threshold cadence/severity policy.
+- [ ] Validate dedup/suppression/recovery transitions at scale.
+
+### 4.5 Runtime Operations
+- [ ] Complete migration off legacy log-derived paths where API equivalents exist.
+- [ ] Produce production deployment checklist and runbook.
 
 ---
 
-## Technical Debt / Enablers
-- [ ] **API Migration**: Move from "Log Parsing" to true OpenClaw API (when available).
-- [ ] **Auth V2**: Implement full User Login (NextAuth) if deploying publicly.
-- [ ] **State Database**: Migrate from ephemeral logs to SQLite/Postgres for history (V3 requirement).
+## Post-V4 Direction (Future)
+- **Autonomy / Self-Healing**: Auto-scale workers, stuck-loop sentinel, budget lock automation.

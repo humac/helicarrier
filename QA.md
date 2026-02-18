@@ -235,3 +235,167 @@ Implemented realtime status source-of-truth via `GET /api/system/status` backed 
 - **Issue**: The server running on port 3000 (PID 9395) returned 404 for the control routes, indicating a stale deployment.
 - **Resolution**: Validated against a fresh local instance (port 3001). Code is verified correct.
 - **Verdict**: **PASS** (Code is solid; Deployment needs refresh).
+
+---
+
+## Phase V3: Intelligence Build Verification (Peter, 2026-02-18)
+
+### Scope Implemented
+- Session History Ledger (`/api/v3/ledger`, `/api/v3/ledger/:sessionId`) with filter/search/sort/pagination.
+- Usage analytics (`/api/v3/analytics/usage`) for tokens/runtime/cost totals + daily series.
+- Model performance matrix (`/api/v3/analytics/performance`) with success/failure, medians, sample warning, and failure drilldown params.
+- Alert threshold engine + UI hooks:
+  - Rule CRUD: `GET/POST /api/v3/alerts/rules`, `PATCH /api/v3/alerts/rules/:ruleId`
+  - Active HUD payload: `GET /api/v3/alerts/active`
+  - Dedup/suppression + transition handling in evaluator.
+- Added ingestion path for canonical normalization/idempotent upsert:
+  - `POST /api/v3/ingest/session`
+
+### Persistence + Core Logic
+- Added persistent JSON-backed V3 data store (`web/lib/v3/store.ts`) for ledger/events/usage/alerts.
+- Added canonical normalizer (`web/lib/v3/normalizer.ts`) for status/runtime/tokens/cost-confidence.
+- Added analytics + alert evaluation modules (`web/lib/v3/analytics.ts`, `web/lib/v3/alerts.ts`).
+- Added shared auth guard for V3 routes (`web/lib/v3/auth.ts`).
+
+### UI Hooks
+- Added Intelligence tab to HUD navigation.
+- Added `IntelligencePanel` with:
+  - usage totals,
+  - performance matrix rows + sample-size caveat style,
+  - active alerts section for HUD visibility.
+
+### Test/Lint Verification
+- [x] `npm test` passed.
+  - Result: **16/16 test files passed, 40/40 tests passed**.
+  - New coverage includes V3 route tests, normalizer, analytics, alert engine, and intelligence UI component.
+- [x] `npm run lint` passed.
+
+### Notes for Heimdall
+- V3 is mounted under `/api/v3/*` and does not alter existing V1/V2 routes.
+- Persistence is file-backed (`web/data/v3-intelligence.json`) for restart-safe local operation; evaluate migration to SQLite/Postgres in hardening phase.
+
+---
+
+## Phase V3: QA (Heimdall, 2026-02-18)
+
+### Commands Run
+- `cd projects/helicarrier/web && npm test`
+- `cd projects/helicarrier/web && npm run lint`
+- `cd projects/helicarrier/web && set -a; source ../.env; set +a; PORT=3100 npm run dev`
+- Runtime integration/security checks with `curl` against:
+  - `GET /api/v3/ledger`
+  - `GET /api/v3/ledger/:sessionId`
+  - `GET /api/v3/analytics/usage`
+  - `GET /api/v3/analytics/performance`
+  - `GET/POST/PATCH /api/v3/alerts/*`
+  - `POST /api/v3/ingest/session`
+
+### Peter Claims Verification (Test/Lint)
+- **Expected**: lint passes, tests pass (40 tests).
+- **Actual**:
+  - `npm test` -> **16/16 files, 40/40 tests passed**.
+  - `npm run lint` -> **pass**.
+- **Result**: ✅ claim verified.
+
+### Endpoint Integration + Security Validation
+
+#### Auth Enforcement (`x-secret-key`)
+- **Expected**: V3 endpoints reject missing/invalid key with `401`.
+- **Actual**:
+  - `GET /api/v3/ledger` -> `401`
+  - `GET /api/v3/ledger/:sessionId` -> `401`
+  - `GET /api/v3/analytics/usage` -> `401`
+  - `GET /api/v3/analytics/performance` -> `401`
+  - `GET /api/v3/alerts/rules` -> `401`
+  - `GET /api/v3/alerts/active` -> `401`
+  - `POST /api/v3/ingest/session` requires auth (verified via POST checks below).
+- **Result**: ✅ auth guard enforced across tested V3 routes.
+
+#### Payload / Query Validation Behavior
+- **Expected**: invalid inputs should return client error (`400`/`404`) and not crash.
+- **Actual**:
+  - `GET /api/v3/ledger?sort=bad` -> `400 {"error":"Invalid sort value"}` ✅
+  - `POST /api/v3/alerts/rules` with incomplete payload -> `400` ✅
+  - `PATCH /api/v3/alerts/rules/:ruleId` invalid JSON -> `400` ✅
+  - `PATCH /api/v3/alerts/rules/nonexistent` -> `404` ✅
+  - `POST /api/v3/ingest/session` invalid JSON -> `400` ✅
+  - `POST /api/v3/ingest/session` missing `session.sessionId` -> `400` ✅
+  - `POST /api/v3/ingest/session` payload missing `session.state` triggered **`500` TypeError** in normalizer (`state.toLowerCase`) ❌
+- **Result**: ⚠️ mostly validated, but ingest has a validation gap (missing required `state` not handled as `400`).
+
+#### Functional Integration (happy paths)
+- `POST /api/v3/ingest/session` with canonical payload (`session.state`, token/cost fields) -> `200 {"ok":true}`.
+- `GET /api/v3/ledger/:sessionId` for ingested session -> `200` with ledger + usage detail.
+- `GET /api/v3/analytics/usage` -> `200` with totals/series updated from ingested data.
+- `GET /api/v3/analytics/performance` -> `200` with model matrix row.
+- `POST /api/v3/alerts/rules` valid rule -> `201`.
+- `PATCH /api/v3/alerts/rules/:ruleId` existing rule -> `200`.
+- `GET /api/v3/alerts/active` -> `200`.
+
+### UI Hook Verification
+- `components/dashboard/IntelligencePanel.test.tsx` is included in passing suite.
+- Runtime payload shapes consumed by IntelligencePanel (`usage`, `matrix`, `alerts`) are returned by V3 endpoints in integration checks.
+- **Result**: ✅ UI hooks for Intelligence panel are wired and test-covered.
+
+### Phase V3 QA Verdict
+- **Overall**: **CONDITIONAL PASS**.
+- **Pass**: auth enforcement, route wiring, analytics/ledger/alerts integrations, UI hook coverage, lint/tests (40 pass).
+- **Blocker / Required fix before hardening signoff**:
+  1. `POST /api/v3/ingest/session` should validate required `session.state` and return `400`, not `500`.
+
+---
+
+## H-011 Dev Handoff (Peter -> Heimdall, 2026-02-18)
+
+### Fix Implemented
+- Hardened `POST /api/v3/ingest/session` validation in `web/app/api/v3/ingest/session/route.ts` **before** calling normalizers.
+- Added required field/type checks for normalizer-required `session` fields:
+  - `session.sessionId`
+  - `session.state`
+  - `session.agentId`
+  - `session.modelId`
+  - `session.startedAt`
+- Added guard for missing/invalid `session` object.
+- Validation failures now return **400** with structured payload:
+  - `error.code = "VALIDATION_ERROR"`
+  - `error.message = "Invalid ingest payload"`
+  - `error.details[]` with field-level issues.
+
+### Regression Tests Added
+- New test file: `web/app/api/v3/ingest/session/route.test.ts`
+  - missing session object -> `400` structured validation error
+  - missing `session.state` -> `400` structured validation error
+  - invalid required field types (`sessionId/state` non-string) -> `400` structured validation error
+
+### Verification Commands
+- `cd projects/helicarrier/web && npm test` -> **PASS** (`17/17` files, `43/43` tests)
+- `cd projects/helicarrier/web && npm run lint` -> **PASS**
+
+### QA Retest Focus
+- Re-run prior failing case (`session.state` missing) and confirm `400` (no TypeError / no `500`).
+- Confirm ingest happy-path remains `200 { ok: true }`.
+
+---
+
+## H-011 QA Verification (Heimdall)
+
+### Scope
+Validated blocker fix for `POST /api/v3/ingest/session` per Peter handoff.
+
+### Runtime Validation (Dev server on `:3210` with project env loaded)
+- [x] Missing `session` object -> **400** with structured `VALIDATION_ERROR`.
+- [x] Missing `session.state` -> **400** with structured `VALIDATION_ERROR` (no 500/TypeError).
+- [x] Invalid required field types (`sessionId/state`) -> **400** with structured `VALIDATION_ERROR`.
+- [x] No-crash check after invalid requests -> service remained healthy (`GET /api/v3/ledger` returned **200**).
+- [x] Happy-path ingest smoke (`session.state` present/valid) -> **200** `{ "ok": true }`.
+
+### Peter Claim Verification (Tests/Lint)
+- [x] `cd projects/helicarrier/web && npm test` -> **PASS** (`17/17` files, `43/43` tests).
+- [x] `cd projects/helicarrier/web && npm run lint` -> **PASS**.
+
+### Blocker Verdict
+- **H-011: PASS**
+- Validation gap is resolved; ingest pre-validation now correctly returns structured `400 VALIDATION_ERROR` responses instead of crashing.
+
+### Recommendation
+- Recommend closing GitHub issue **#4**.

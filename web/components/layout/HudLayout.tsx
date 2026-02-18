@@ -2,12 +2,12 @@
 
 import React from "react";
 import { cn } from "@/lib/utils";
-import { Activity, Terminal, Shield, Cpu } from "lucide-react";
+import { Activity, Terminal, Shield, Cpu, BrainCircuit } from "lucide-react";
 
 interface HudLayoutProps {
   children: React.ReactNode;
-  activeTab: "overview" | "logs" | "resources";
-  onTabChange: (tab: "overview" | "logs" | "resources") => void;
+  activeTab: "overview" | "logs" | "resources" | "intelligence";
+  onTabChange: (tab: "overview" | "logs" | "resources" | "intelligence") => void;
 }
 
 export default function HudLayout({ children, activeTab, onTabChange }: HudLayoutProps) {
@@ -27,6 +27,7 @@ export default function HudLayout({ children, activeTab, onTabChange }: HudLayou
           <NavItem icon={<Activity />} label="Overview" active={activeTab === "overview"} onClick={() => onTabChange("overview")} />
           <NavItem icon={<Terminal />} label="System Logs" active={activeTab === "logs"} onClick={() => onTabChange("logs")} />
           <NavItem icon={<Cpu />} label="Resources" active={activeTab === "resources"} onClick={() => onTabChange("resources")} />
+          <NavItem icon={<BrainCircuit />} label="Intelligence" active={activeTab === "intelligence"} onClick={() => onTabChange("intelligence")} />
         </nav>
 
         <div className="p-4 border-t border-zinc-800/50">

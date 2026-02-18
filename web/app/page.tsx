@@ -4,9 +4,10 @@ import { useState } from "react";
 import HudLayout from "@/components/layout/HudLayout";
 import HeroGrid from "@/components/dashboard/HeroGrid";
 import SystemPulse from "@/components/dashboard/SystemPulse";
+import IntelligencePanel from "@/components/dashboard/IntelligencePanel";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"overview" | "logs" | "resources">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "logs" | "resources" | "intelligence">("overview");
 
   return (
     <HudLayout activeTab={activeTab} onTabChange={setActiveTab}>
@@ -46,6 +47,13 @@ export default function Home() {
           <section>
             <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-500 mb-4">Resource Usage</h3>
             <ResourcesPanel />
+          </section>
+        )}
+
+        {activeTab === "intelligence" && (
+          <section>
+            <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-500 mb-4">V3 Intelligence</h3>
+            <IntelligencePanel />
           </section>
         )}
       </div>

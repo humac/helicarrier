@@ -8,11 +8,15 @@ This file defines delivery workflow for **Helicarrier only**.
 - Handoff criteria between design, build, and QA
 
 ## Delivery Flow
-1. Requirements/design update in `ARCH.md` and `TASKS.md`
-2. Implementation in `web/`
-3. Unit tests updated for changed behavior
-4. Integration + security QA in `QA.md`
-5. Final review and release decision
+1. Pepper requirements + issue hygiene (`REQ.md`, `ISSUES.md`)
+2. Tony architecture/design updates (`ARCH.md`, `TASKS.md`)
+3. Peter implementation in `web/` + unit tests for changed behavior
+4. Heimdall integration + security QA in `QA.md`
+5. Pepper closeout docs + release packaging
+
+Chain notation: **Pepper -> Tony -> Peter -> Heimdall -> Pepper**.
+If QA finds issues, loop back through **Tony -> Peter -> Heimdall** until pass.
+At every handoff, send a short progress notification (informational; continue unless blocked).
 
 ## Required Artifacts
 - `ARCH.md` (architecture decisions)
