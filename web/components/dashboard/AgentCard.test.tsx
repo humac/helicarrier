@@ -20,12 +20,10 @@ describe("AgentCard", () => {
     expect(screen.getByText("0")).toBeTruthy();
   });
 
-  it("applies active styling and status dot color", () => {
-    const { container } = render(
-      <AgentCard agent="@tony" role="architect" status="active" load="61%" />,
-    );
+  it("applies running styling and status dot color", () => {
+    const { container } = render(<AgentCard agent="@tony" role="architect" status="running" load="61%" />);
 
-    const statusBadge = screen.getByText("active").closest("div");
+    const statusBadge = screen.getByText("running").closest("div");
     expect(statusBadge?.className).toContain("border-green-500/30");
     expect(statusBadge?.className).toContain("text-green-400");
 
@@ -33,11 +31,11 @@ describe("AgentCard", () => {
     expect(statusDot).toBeTruthy();
   });
 
-  it("applies error status dot color", () => {
-    const { container } = render(<AgentCard agent="@heimdall" role="qa" status="error" load="12%" />);
+  it("applies failed status dot color", () => {
+    const { container } = render(<AgentCard agent="@heimdall" role="qa" status="failed" load="12%" />);
 
     const statusDot = container.querySelector(".bg-red-500");
     expect(statusDot).toBeTruthy();
-    expect(screen.getByText("error")).toBeTruthy();
+    expect(screen.getByText("failed")).toBeTruthy();
   });
 });

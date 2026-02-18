@@ -1,33 +1,59 @@
-# TASKS.md - Implementation Plan
+# TASKS.md - Peter Implementation Plan (V2 Command & Control)
 
-## Phase 1: Setup (The Frame)
-- [ ] **Scaffold**: `npx create-next-app@latest helicarrier --typescript --tailwind --eslint`
-- [ ] **Dependencies**: `npm install framer-motion clsx tailwind-merge lucide-react`
-- [ ] **Shadcn**: `npx shadcn-ui@latest init` (Default: Slate, CSS Variables)
-- [ ] **Cleanup**: Strip default Next.js boilerplate.
+## Phase A - Backend (Control Plane)
 
-## Phase 2: Components (The Armor)
-- [ ] **Layout**: Create `components/layout/HudLayout.tsx` (Glass sidebar + main content).
-- [ ] **AgentCard**: Create `components/dashboard/AgentCard.tsx` (Avatar, Status, Pulse).
-- [ ] **HeroGrid**: Create `components/dashboard/HeroGrid.tsx`.
-- [ ] **LogStream**: Create `components/dashboard/SystemPulse.tsx`.
+- [ ] **Gateway Client Update**: Extend `web/lib/gatewayClient.ts` to support Command methods (`kill`, `spawn`, `setModel`).
+- [ ] **Route: Kill Switch**: Create `web/app/api/control/kill/route.ts`.
+  - Validate `X-Secret-Key`.
+  - Validate payload `{ sessionId }`.
+  - Call Gateway.
+  - Log `[AUDIT]` event.
+- [ ] **Route: Task Spawn**: Create `web/app/api/control/spawn/route.ts`.
+  - Validate payload `{ agentId, prompt }`.
+  - Call Gateway.
+- [ ] **Route: Model Selector**: Create `web/app/api/control/model/route.ts`.
+  - Validate payload `{ agentId, model }`.
+  - Update Gateway/Config.
 
-## Phase 3: Integration (The Arc Reactor)
-- [ ] **Log Reader API**: Create `app/api/system/logs/route.ts` to tail `~/.openclaw/state/logs/` and parse status lines (V1 Strategy).
-- [ ] **Env**: Setup `.env.local` with `OPENCLAW_LOG_PATH` (default: `~/.openclaw/state/logs/openclaw.log`).
-- [ ] **Hooks**: Create `hooks/useSystemPulse.ts` to poll the log API.
+## Phase B - Frontend (Components)
 
-## Phase 4: Launch
-- [ ] **Script**: Create `start-mission.sh` to build and run on port 3000.
-- [ ] **Verification**: Run `npm run dev` and screenshot.
+- [ ] **Component: KillModal**: Create `web/components/dashboard/KillModal.tsx`.
+  - Props: `isOpen`, `sessionId`, `onConfirm`, `onCancel`.
+  - Styling: Red/Destructive theme.
+- [ ] **Component: TaskTerminal**: Create `web/components/dashboard/TaskTerminal.tsx`.
+  - Input field with "Matrix" styling.
+  - Handle `Enter` key.
+  - Show simple "Sending..." -> "Sent" state.
+- [ ] **Component: ModelSelector**: Create `web/components/dashboard/ModelSelector.tsx`.
+  - Dropdown with available models.
+  - "Apply" button appears on change.
+- [ ] **Integration: HeroGrid**: Update `HeroGrid.tsx`.
+  - Add `Kill` button to active cards (opens Modal).
+  - Add `ModelSelector` to agent cards.
 
-## Phase 5: Security Hardening (Priority: Critical)
-- [ ] **Secret Generation**: Generate a secure token (or use `OPENCLAW_AUTH_TOKEN`) and place it in `.env.local`.
-- [ ] **API Middleware**: Update `app/api/logs/route.ts` to check `request.headers.get("x-secret-key")`. Return `401 Unauthorized` if mismatch.
-- [ ] **Client Auth**: Update `hooks/useSystemPulse.ts` (and any other fetchers) to pass `X-Secret-Key` from `process.env.NEXT_PUBLIC_API_KEY` (or similar exposed env var, though server-side proxying is safer if possible).
-  - *Note*: Since this is a client-side fetch to a Next.js API route, the API route protects the *server* resources. The client needs a way to pass a valid token. For a simple dashboard, we might rely on a server-side session or a static public key if the threat model allows.
-  - *Refinement*: For this phase, rely on the Next.js API route checking a server-side secret. The Client (browser) acts as the trusted user.
-- [ ] **Audit**: Verify `curl -H "X-Secret-Key: wrong" ...` returns 401.
+## Phase C - State & Integration
 
-## Phase 6: Future Improvements
-- [ ] **Gateway Uplink (Low Priority)**: Explore tRPC or WebSocket client to replace log tailing with direct API communication once documented.
+- [ ] **Hook**: Create `web/hooks/useControlPlane.ts`.
+  - Functions: `killSession`, `spawnTask`, `setModel`.
+  - Handle loading states and error toasts.
+- [ ] **Dashboard Layout**: Mount `TaskTerminal` at the bottom of the dashboard (sticky footer or dedicated row).
+
+## Phase D - Testing (Acceptance Criteria)
+
+- [ ] **Test: Kill API**: `web/app/api/control/kill/route.test.ts`.
+  - Mock Gateway response.
+  - Verify 401 without key.
+  - Verify 400 without sessionId.
+- [ ] **Test: Kill Modal**: `web/components/dashboard/KillModal.test.tsx`.
+  - Renders sessionId.
+  - Calls `onConfirm` only when clicked.
+- [ ] **Test: Terminal**: `web/components/dashboard/TaskTerminal.test.tsx`.
+  - Clears input on success.
+  - Does not submit empty string.
+- [ ] **Manual Verification**:
+  - Kill a dummy process -> Status changes to 'failed/killed' in UI.
+  - Spawn a task -> New session appears in list.
+
+## Dependencies
+- Requires `ARCH.md` V2 specs.
+- Requires Gateway running locally for integration testing.

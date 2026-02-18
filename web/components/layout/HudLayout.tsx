@@ -45,13 +45,13 @@ export default function HudLayout({ children, activeTab, onTabChange }: HudLayou
   );
 }
 
-function NavItem({ icon, label, active = false, onClick }: { icon: React.ReactNode, label: string, active?: boolean, onClick?: () => void }) {
+function NavItem({ icon, label, active = false, onClick }: { icon: React.ReactElement<{ className?: string }>, label: string, active?: boolean, onClick?: () => void }) {
   return (
     <button onClick={onClick} className={cn(
       "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-sm font-medium",
       active ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20" : "hover:bg-zinc-800/50 text-zinc-400 hover:text-zinc-100"
     )}>
-      {React.cloneElement(icon as React.ReactElement, { className: "w-4 h-4" })}
+      {React.cloneElement(icon, { className: "w-4 h-4" })}
       {label}
     </button>
   );

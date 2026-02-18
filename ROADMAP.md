@@ -11,16 +11,16 @@
 
 ---
 
-## V2: Command & Control (Next Priority)
+## V2: Command & Control (Status: ✅ Done)
 **Objective**: Active intervention and task management. Turn the HUD into a cockpit.
 
 ### 2.1 Tactical Override ("Kill Switch")
-- **Feature**: Button on `AgentCard` to immediately terminate a session.
+- [x] **Feature**: Button on `AgentCard` to immediately terminate a session.
 - **Backend**: API route to execute `openclaw process kill <pid>`.
 - **UX**: "Are you sure?" modal with a red "Terminate" confirmation.
 
 ### 2.2 Task Injection ("Jarvis Terminal")
-- **Feature**: A command line input in the Dashboard to spawn new agents.
+- [x] **Feature**: A command line input in the Dashboard to spawn new agents.
 - **Capabilities**:
   - `spawn @tony "Design a login page"`
   - `deploy @peter "Fix bug #42"`
@@ -32,7 +32,7 @@
 
 ---
 
-## V3: Intelligence (Analytics & History)
+## V3: Intelligence (Analytics & History) — Next Priority
 **Objective**: Cost optimization and forensic analysis.
 
 ### 3.1 The Ledger (Session History)
