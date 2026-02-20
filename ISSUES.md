@@ -1,10 +1,3 @@
 # ISSUES.md
 
-## Open
-
-### [ID] Title
-- Status:
-- Priority:
-- Risk:
-- Action:
-- Exit Criteria:
+*No open issues at this time.*

@@ -1,12 +1,16 @@
 # RUN_STATE.md (HELICARRIER RELAUNCH)
 
-## 🚨 Active Focus
-- **Project**: Helicarrier (Native Integration Pivot)
-- **Phase**: Phase 0 (Brainstorming)
-- **Owner**: Jarvis / Tony / Pepper
-- **Status**: active
+## ✅ Mission Complete
+- **Project**: Helicarrier (Hologram)
+- **Phase**: Closeout Complete (Phase 2)
+- **Status**: Finished
 
 ## Ground Truth
-- **Brainstorming**: [BRAINSTORM.md](../BRAINSTORM.md)
-- **Repo Status**: Reset to standard project template (V2).
-- **Archive**: All V4.1 code saved in branch `legacy/helicarrier-v4.1`.
+- **Requirements**: `projects/helicarrier/REQ.md` ✅
+- **Architecture**: `projects/helicarrier/ARCH.md` ✅
+- **Implementation**: Phase 1 + Phase 2 ✅
+- **QA**: Phase 1 PASS, Phase 2 PASS ✅
+- **Closeout Docs**: README/ROADMAP/ISSUES/DECISIONS/REPORT ✅
+
+## Next
+- Phase 3 candidate: Advanced Ops (Context Explorer, Replay Mode)

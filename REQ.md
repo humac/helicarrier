@@ -1,37 +1,52 @@
-# REQ.md - Helicarrier "Hologram" (Integrated Web UI)
+# Requirements: Helicarrier (Hologram)
 
-## Problem
-OpenClaw users currently manage complex agent chains via terminal logs, which makes it difficult to track subagent relationships, monitor real-time token usage, and steer sessions without manual command typing.
+## 1. Problem Statement
+OpenClaw operators currently lack a unified, real-time visual interface to monitor and control agent swarms. Interaction is primarily CLI or chat-based, which becomes unmanageable with multiple active subagents, leading to reduced situational awareness and slower intervention times during critical failures.
 
-## Goals
-- Provide a real-time visual dashboard for a local OpenClaw instance.
-- Allow session management (spawn, kill, steer) from a browser.
-- Minimize installation overhead (bundled with the CLI).
-- Zero configuration (detects local `.openclaw` workspace).
+## 2. Users & Personas
+- **Operator (Main User)**: Needs high-level system health at a glance, with the ability to drill down into specific agent logs and intervene (kill/steer) immediately.
+- **Developer**: Needs debug-level visibility into tool calls, latency, and error stacks to diagnose agent misbehavior.
 
-## Non-Goals
-- Remote hosting/multi-user multi-tenant SaaS.
-- Replacing the CLI for core automation tasks.
-- External database dependencies (remains SQLite-based).
+## 3. Functional Requirements
 
-## User Stories
-- **Developer/Operator**: "As an OpenClaw operator, I want to see a live graph of my subagent chain so I can identify loops or stalled agents instantly."
-- **Analyst**: "As an analyst, I want to see real-time token/cost consumption for the current session to manage project budgets."
-- **CTO (Jarvis)**: "As a project orchestrator, I want a single 'Mission Control' view that doesn't require a separate Next.js server setup."
+### 3.1 Dashboard & Monitoring
+- **FR-01**: Display real-time status of the Main Agent and all active Subagents (Status: Idle, Running, Paused, Error).
+- **FR-02**: Visualize the agent hierarchy (Tree view) showing parent-child relationships.
+- **FR-03**: Stream recent logs and "thought" processes (reasoning blocks) for selected agents.
+- **FR-04**: Display key metrics: Token usage, Session duration, Tool error rates.
 
-## Functional Requirements
-1.  **Dashboard Display**: Live view of all active sessions and their status.
-2.  **Session Steer**: Input field to send `steer` messages to any active subagent.
-3.  **Visual Log Stream**: Real-time websocket feed of filtered logs (system, agent, tool).
-4.  **Integrated Server**: A background process (via the Gateway) that serves static files and provides a local API.
+### 3.2 Controls (Hologram Interface)
+- **FR-05**: Provide a "Kill Switch" for individual agents and a global "Emergency Stop" for the entire swarm.
+- **FR-06**: Allow "Steering" messages to be injected into running subagent sessions without killing them.
+- **FR-07**: Support manual approval/rejection of sensitive tool calls (Human-in-the-loop).
 
-## Acceptance Criteria
-- [ ] `openclaw dashboard` command opens the user's default browser to `localhost:4000` (or similar).
-- [ ] Real-time updates via WebSockets show subagent activity within <500ms latency.
-- [ ] No manual database migration or setup required beyond the standard OpenClaw install.
-- [ ] UI is responsive and accessible on modern browsers.
+### 3.3 Session Management
+- **FR-08**: List historical sessions with filtering by date, status, and project.
+- **FR-09**: specific view for "Zombie" processes or detached agents that need cleanup.
 
-## Risks/Dependencies
-- **Port Conflicts**: Local web server might collide with other services.
-- **Security**: Ensuring the local dashboard is only accessible from `localhost`.
-- **Latency**: WebSocket overhead on low-resource machines.
+### 3.4 Model Visibility
+- **FR-10**: Show which model is backing each agent (e.g., Gemini 3 Pro, Claude 3.7).
+- **FR-11**: Visual indicator for context window usage (e.g., progress bar towards limit).
+
+## 4. Non-Functional Requirements
+- **NFR-01 (Latency)**: UI updates must reflect agent state changes within < 200ms.
+- **NFR-02 (Security)**: Dashboard must be accessible only via authenticated localhost or secured tunnel (no public exposure).
+- **NFR-03 (Reliability)**: The dashboard must remain responsive even if the backend agent runtime hangs or crashes.
+- **NFR-04 (Tech Stack)**: Frontend: Next.js/React (consistent with existing stack); Backend: Node.js/WebSocket bridge to OpenClaw core.
+
+## 5. Scope
+### In Scope
+- Web-based Dashboard (Hologram).
+- WebSocket integration with OpenClaw runtime.
+- Basic read/write controls (Kill, Steer).
+
+### Out of Scope
+- Native mobile app.
+- Multi-user RBAC (Single operator assumed for Phase 1).
+- Voice control integration.
+
+## 6. Acceptance Criteria
+- [ ] **Dashboard Load**: Dashboard renders with mock agent data in < 1s.
+- [ ] **Live Updates**: Spawning a subagent in CLI immediately (within 1s) appears in the Dashboard tree view.
+- [ ] **Kill Command**: Clicking "Kill" on the UI successfully terminates the corresponding CLI process.
+- [ ] **Log Stream**: Agent tool outputs are visible in the UI log panel as they happen.
