@@ -25,14 +25,12 @@ interface AgentState {
   agents: Record<string, Agent>;
   logs: LogEntry[];
   selectedAgentId: string | null;
-  isConnected: boolean;
   isOperatorMode: boolean;
   
   // Actions
   upsertAgent: (agent: Agent) => void;
   addLog: (log: LogEntry) => void;
   selectAgent: (agentId: string | null) => void;
-  setConnectionStatus: (status: boolean) => void;
   toggleOperatorMode: () => void;
   clearLogs: () => void;
   
@@ -46,7 +44,6 @@ export const useAgentStore = create<AgentState>((set) => ({
   agents: {},
   logs: [],
   selectedAgentId: null,
-  isConnected: false,
   isOperatorMode: false,
 
   upsertAgent: (agent) => set((state) => ({
@@ -64,7 +61,6 @@ export const useAgentStore = create<AgentState>((set) => ({
 
   selectAgent: (agentId) => set({ selectedAgentId: agentId }),
   
-  setConnectionStatus: (status) => set({ isConnected: status }),
   toggleOperatorMode: () => set((state) => ({ isOperatorMode: !state.isOperatorMode })),
 
   clearLogs: () => set({ logs: [] }),

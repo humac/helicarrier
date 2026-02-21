@@ -1,10 +1,12 @@
 import React, { useMemo } from 'react';
 import { useAgentStore } from '@/store/agentStore';
+import { useGatewayStore } from '@/store/gatewayStore';
 import { Brain, Wifi, ShieldCheck, Activity } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export default function DashboardStats() {
-  const { agents, isConnected } = useAgentStore();
+  const { agents } = useAgentStore();
+  const { isConnected } = useGatewayStore();
 
   const stats = useMemo(() => {
     const totalAgents = Object.keys(agents).length;

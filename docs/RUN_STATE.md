@@ -1,16 +1,12 @@
 # RUN_STATE.md (HELICARRIER RELAUNCH)
 
-## ✅ Mission Complete
+## 🚨 Active Focus
 - **Project**: Helicarrier (Hologram)
-- **Phase**: Closeout Complete (Phase 2)
-- **Status**: Finished
+- **Phase**: Recovery Loop (Peter hotfix retry)
+- **Owner**: Peter
+- **Status**: active
 
 ## Ground Truth
-- **Requirements**: `projects/helicarrier/REQ.md` ✅
-- **Architecture**: `projects/helicarrier/ARCH.md` ✅
-- **Implementation**: Phase 1 + Phase 2 ✅
-- **QA**: Phase 1 PASS, Phase 2 PASS ✅
-- **Closeout Docs**: README/ROADMAP/ISSUES/DECISIONS/REPORT ✅
-
-## Next
-- Phase 3 candidate: Advanced Ops (Context Explorer, Replay Mode)
+- **Tony review**: complete ✅
+- **Peter connectivity fix run**: failed (startup/fetch) ❌
+- **Current Objective**: Re-run Peter hotfix and restore app health (`/` endpoint) before QA

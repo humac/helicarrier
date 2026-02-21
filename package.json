@@ -20,10 +20,10 @@
     "react-virtualized-auto-sizer": "^2.0.3",
     "react-window": "^2.2.7",
     "socket.io-client": "^4.8.3",
+    "tailwind-merge": "^3.5.0",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
-    "vitest": "^0.34.6",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -31,6 +31,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^0.34.6"
   }
 }

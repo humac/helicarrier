@@ -1,5 +1,69 @@
 # Implementation Tasks: Helicarrier (Hologram)
 
+## Phase 0: Architecture Completion (Gateway Connectivity Display)
+
+**Goal**: Implement robust Gateway ONLINE/OFFLINE visual feedback with clear user signaling.
+**Gate**: Dashboard must show red offline banner and gray-out effect when Gateway is unreachable.
+
+### 0.1 Gateway State Management
+- **Task**: Implement centralized gateway state in `src/store/gatewayStore.ts`.
+- **Logic**:
+    - Expose `isConnected` (boolean), `connectionStatus` ('connected' | 'degraded' | 'offline' | 'recovering'), `retryCount` (number)
+    - Auto-retry timer: every 2s, max 5 retries before showing manual reconnect
+    - Connection status transitions: connected → degraded → offline → recovering → connected
+- **Acceptance Criteria**:
+    - [ ] State changes trigger UI re-renders only for affected components
+    - [ ] Store persists during disconnection (don't lose state on reconnect)
+    - [ ] No memory leaks from retry timers
+
+### 0.2 Offline Banner Component
+- **Task**: Create `src/components/OfflineBanner.tsx` and integrate into `page.tsx`.
+- **UI**:
+    - Red background (`bg-red-900/90`), high contrast text (`text-white`).
+    - Icon: `AlertCircle` (Lucide).
+    - Text: "⚠️ GATEWAY CONNECTION LOST - Retrying every 2s...".
+    - Prominent button: "Reconnect Now" (if retry fails).
+- **Acceptance Criteria**:
+    - [ ] Component renders at the top of the layout only when `isConnected: false`.
+    - [ ] Covers top 100px of viewport, z-index high (50+).
+    - [ ] Disappears when `isConnected: true` (opacity-0, pointer-events-none).
+    - [ ] Auto-retry countdown visible (e.g., "Reconnecting in 3s...").
+
+### 0.2 Gateway State Integration
+- **Task**: Update `src/hooks/useAgentSocket.ts`, `src/store/agentStore.ts`, and `src/components/GlobalControls.tsx`.
+- **Logic**:
+    - Store exposes `isConnected` state.
+    - `useAgentSocket` emits `setConnectionStatus(true/false)` on connect/disconnect events.
+    - `GlobalControls` button becomes **DISABLED** when offline.
+    - `page.tsx` header "CONNECTED" text changes to "OFFLINE" (red) when disconnected.
+- **Acceptance Criteria**:
+    - [ ] Dashboard header shows "ONLINE" (green) / "OFFLINE" (red).
+    - [ ] Agent tree nodes gray out when disconnected (opacity-50, grayscale).
+    - [ ] Log viewer disabled and shows "No logs available (Gateway offline)" when disconnected.
+    - [ ] **Emergency Stop button is disabled when offline.**
+
+### 0.3 Connection Recovery Testing
+- **Task**: Verify offline-to-online transition flow.
+- **Steps**:
+    1. Start dev server, disconnect WebSocket.
+    2. Confirm offline banner appears, tree grayed out.
+    3. Reconnect WebSocket (or simulate via test script).
+    4. Confirm offline banner disappears, tree restores color.
+- **Acceptance Criteria**:
+    - [ ] Transition is instant (<100ms).
+    - [ ] No visual flicker during state change.
+    - [ ] Store state persists correctly during disconnection.
+
+---
+
+**[GATE]: PHASE 0 REVIEW**
+- [ ] Offline banner visible when Gateway is down.
+- [ ] Agent tree/gray-out effect applied correctly.
+- [ ] Reconnection flow works without visual glitches.
+- [ ] All safety rails preserved (write actions hidden during offline).
+
+---
+
 ## Phase 1: Core Visibility (Read-Only)
 
 **Goal**: Establish the Next.js frontend, connect to the OpenClaw Gateway via WebSocket, and visualize the live agent tree and logs.
@@ -61,9 +125,16 @@
 ---
 
 **[GATE]: PHASE 1 REVIEW**
-- [ ] Manual verification of <200ms update latency.
-- [ ] Code review of WebSocket handling and state normalization.
-- [ ] Security check: ensure no write actions are exposed yet.
+- [x] **Manual verification of <200ms update latency** (VERIFIED - QA.md Post-Hotfix)
+- [x] **Code review of WebSocket handling and state normalization** (VERIFIED - QA.md)
+- [x] **Security check: ensure no write actions are exposed** (VERIFIED - Phase 1 security checks in QA.md)
+
+**Phase 1 Completion Evidence**:
+- Lint: PASSED (0 errors)
+- Build: PASSED (Next.js 16.1.6, zero TS errors)
+- No kill/steer UI in components: VERIFIED
+- State isolation verified: VERIFIED
+- Logs: `projects/helicarrier/QA.md` (Phase 1 Gate)
 
 ---
 
@@ -112,3 +183,67 @@
 - **Acceptance Criteria**:
     - [x] Requires double confirmation (e.g., type "STOP").
     - [x] Successfully terminates all active agents in the mock environment.
+
+### 0.5 Offline Banner Component Integration
+- **Task**: Integrate `OfflineBanner.tsx` into `page.tsx` layout.
+- **UI**:
+    - Red background (`bg-red-900/90`), high contrast text (`text-white`).
+    - Icon: `AlertCircle` (Lucide).
+    - Text: "⚠️ GATEWAY CONNECTION LOST - Retrying every 2s...".
+    - Prominent button: "Reconnect Now" (if retry fails).
+- **Acceptance Criteria**:
+    - [ ] Component renders at the top of the layout only when `isConnected: false`.
+    - [ ] Covers top 100px of viewport, z-index high (50+).
+    - [ ] Disappears when `isConnected: true` (opacity-0, pointer-events-none).
+    - [ ] Auto-retry countdown visible (e.g., "Reconnecting in 3s...").
+
+### 0.6 Gateway State Integration
+- **Task**: Update `src/hooks/useAgentSocket.ts`, `src/store/agentStore.ts`, and `src/components/GlobalControls.tsx`.
+- **Logic**:
+    - Store exposes `isConnected` state.
+    - `useAgentSocket` emits `setConnectionStatus(true/false)` on connect/disconnect events.
+    - `GlobalControls` button becomes **DISABLED** when offline.
+    - `page.tsx` header "CONNECTED" text changes to "OFFLINE" (red) when disconnected.
+- **Acceptance Criteria**:
+    - [ ] Dashboard header shows "ONLINE" (green) / "OFFLINE" (red).
+    - [ ] Agent tree nodes gray out when disconnected (opacity-50, grayscale).
+    - [ ] Log viewer disabled and shows "No logs available (Gateway offline)" when disconnected.
+    - [ ] **Emergency Stop button is disabled when offline.**
+
+### 0.7 Connection Recovery Testing
+- **Task**: Verify offline-to-online transition flow.
+- **Steps**:
+    1. Start dev server, disconnect WebSocket.
+    2. Confirm offline banner appears, tree grayed out.
+    3. Reconnect WebSocket (or simulate via test script).
+    4. Confirm offline banner disappears, tree restores color.
+- **Acceptance Criteria**:
+    - [ ] Transition is instant (<100ms).
+    - [ ] No visual flicker during state change.
+    - [ ] Store state persists correctly during disconnection.
+
+---
+
+**[GATE]: PHASE 0 REVIEW**
+- [ ] Offline banner visible when Gateway is down.
+- [ ] Agent tree/gray-out effect applied correctly.
+- [ ] Reconnection flow works without visual glitches.
+- [ ] All safety rails preserved (write actions hidden during offline).
+
+---
+
+**[GATE]: PHASE 2 QA (Heimdall)**
+- [ ] Write actions disable when Gateway offline (Phase 0)
+- [ ] Double-confirmation modal for Kill/Steer
+- [ ] Emergency Stop requires "STOP" text input
+- [ ] No unauthorized state mutations (Zustand selectors)
+- [ ] XSS protection on user-input steering text
+- [ ] Authorization check for user role (mock implementation)
+- [ ] Security audit: `projects/helicarrier/QA.md` Phase 2 security checklist
+
+**Phase 2 Completion Evidence**:
+- Lint: PASSED (0 errors)
+- Build: PASSED (Next.js 16.1.6, zero TS errors)
+- Manual test: Kill/Steer flows working
+- Security check: Write actions protected with confirmations
+- QA pass: All security checklist items verified

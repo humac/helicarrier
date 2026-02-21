@@ -8,12 +8,13 @@ import {
   DialogDescription, 
   DialogFooter, 
   DialogHeader, 
-  DialogTitle,
+  DialogTitle, 
   DialogTrigger 
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useAgentStore } from '@/store/agentStore';
-import { Trash2, MessageSquare, Shield } from 'lucide-react';
+import { useGatewayStore } from '@/store/gatewayStore';
+import { Trash2, MessageSquare } from 'lucide-react';
 
 interface AgentActionsProps {
   agentId: string;
@@ -26,6 +27,7 @@ export function AgentActions({ agentId, isTerminated }: AgentActionsProps) {
   const [isSteerOpen, setIsSteerOpen] = useState(false);
   const [steerMessage, setSteerMessage] = useState('');
   const { killAgentAction, steerAgentAction } = useAgentStore();
+  const { isConnected } = useGatewayStore();
 
   const handleKill = async () => {
     if (killConfirmation === 'CONFIRM') {
@@ -47,6 +49,8 @@ export function AgentActions({ agentId, isTerminated }: AgentActionsProps) {
     }
   };
 
+  const isDisabled = !isConnected || isTerminated;
+
   return (
     <div className="flex gap-2">
       <Dialog open={isKillDialogOpen} onOpenChange={setIsKillDialogOpen}>
@@ -54,10 +58,10 @@ export function AgentActions({ agentId, isTerminated }: AgentActionsProps) {
           <Button 
             variant="destructive" 
             size="sm" 
-            disabled={isTerminated}
-            className="flex items-center gap-1"
+            disabled={isDisabled}
+            className="h-6 px-2 text-xs flex items-center gap-1"
           >
-            <Trash2 size={14} />
+            <Trash2 size={12} />
             Kill
           </Button>
         </DialogTrigger>
@@ -76,7 +80,7 @@ export function AgentActions({ agentId, isTerminated }: AgentActionsProps) {
               value={killConfirmation}
               onChange={(e) => setKillConfirmation(e.target.value)}
               placeholder="Type CONFIRM to confirm"
-              className="font-mono"
+              className="font-mono bg-gray-900 border-gray-700"
             />
           </div>
           <DialogFooter>
@@ -102,10 +106,10 @@ export function AgentActions({ agentId, isTerminated }: AgentActionsProps) {
           <Button 
             variant="outline" 
             size="sm" 
-            disabled={isTerminated}
-            className="flex items-center gap-1"
+            disabled={isDisabled}
+            className="h-6 px-2 text-xs flex items-center gap-1 bg-gray-800 border-gray-700 hover:bg-gray-700"
           >
-            <MessageSquare size={14} />
+            <MessageSquare size={12} />
             Steer
           </Button>
         </DialogTrigger>
@@ -113,7 +117,7 @@ export function AgentActions({ agentId, isTerminated }: AgentActionsProps) {
           <DialogHeader>
             <DialogTitle>Steer Agent</DialogTitle>
             <DialogDescription>
-              Send a natural language instruction to guide this agent's behavior.
+              Send a natural language instruction to guide this agent&apos;s behavior.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -121,7 +125,7 @@ export function AgentActions({ agentId, isTerminated }: AgentActionsProps) {
               value={steerMessage}
               onChange={(e) => setSteerMessage(e.target.value)}
               placeholder="Enter your steering message here..."
-              className="w-full h-32 p-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full h-32 p-2 bg-gray-900 border border-gray-700 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
             />
           </div>
           <DialogFooter>
@@ -134,6 +138,7 @@ export function AgentActions({ agentId, isTerminated }: AgentActionsProps) {
             <Button 
               onClick={handleSteer}
               disabled={!steerMessage.trim()}
+              className="bg-blue-600 hover:bg-blue-700"
             >
               Send Message
             </Button>

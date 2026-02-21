@@ -13,12 +13,14 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useAgentStore } from '@/store/agentStore';
+import { useGatewayStore } from '@/store/gatewayStore';
 import { AlertTriangle, Shield } from 'lucide-react';
 
 export function GlobalControls() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [confirmation, setConfirmation] = useState('');
   const { killAllAgentsAction } = useAgentStore();
+  const { isConnected } = useGatewayStore();
 
   const handleKillAll = async () => {
     if (confirmation === 'EMERGENCY_STOP') {
@@ -37,6 +39,7 @@ export function GlobalControls() {
           variant="destructive" 
           size="sm" 
           className="flex items-center gap-2"
+          disabled={!isConnected}
         >
           <AlertTriangle size={16} />
           Emergency Stop

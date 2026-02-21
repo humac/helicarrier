@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { useAgentStore, Agent } from '@/store/agentStore';
 import { Activity, Circle, Terminal } from 'lucide-react';
 import { clsx } from 'clsx';
-import AgentActions from './AgentActions';
+import { AgentActions } from './AgentActions';
 
 interface AgentWithChildren extends Agent {
   children: AgentWithChildren[];
@@ -52,7 +52,7 @@ const AgentNode = ({ agent, depth }: AgentNodeProps) => {
             <span className="text-[10px] text-gray-600 font-mono truncate">{agent.id.slice(0, 8)}</span>
             
             {/* Action buttons (only visible on hover) */}
-            <AgentActions agentId={agent.id} status={agent.status} />
+            <AgentActions agentId={agent.id} isTerminated={agent.status === 'terminated'} />
           </div>
         </div>
       </div>
