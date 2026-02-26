@@ -87,3 +87,30 @@ export interface SearchResults {
   sessions: Session[];
   cronJobs: CronJob[];
 }
+
+// === Agent Management Types ===
+
+export interface SubAgent {
+  id: string;
+  label: string;
+  model: string;
+  status: "active" | "idle" | "completed" | "failed";
+  createdAt: number; // epoch ms
+  updatedAt?: number; // epoch ms
+  tokenCount?: number;
+  task?: string;
+}
+
+export interface SessionCreateRequest {
+  label?: string;
+  model?: string;
+  instruction?: string;
+}
+
+export interface SessionCreateResponse {
+  id: string;
+  label: string;
+  model: string;
+  status: "active";
+  createdAt: number;
+}
