@@ -1,249 +1,289 @@
-# Implementation Tasks: Helicarrier (Hologram)
+# Helicarrier v2 - Implementation Tasks
 
-## Phase 0: Architecture Completion (Gateway Connectivity Display)
+## Phase 1: Core Setup
 
-**Goal**: Implement robust Gateway ONLINE/OFFLINE visual feedback with clear user signaling.
-**Gate**: Dashboard must show red offline banner and gray-out effect when Gateway is unreachable.
+### Task 1.1: Project Bootstrap
+**Files**: `package.json`, `tsconfig.json`, `next.config.js`
 
-### 0.1 Gateway State Management
-- **Task**: Implement centralized gateway state in `src/store/gatewayStore.ts`.
-- **Logic**:
-    - Expose `isConnected` (boolean), `connectionStatus` ('connected' | 'degraded' | 'offline' | 'recovering'), `retryCount` (number)
-    - Auto-retry timer: every 2s, max 5 retries before showing manual reconnect
-    - Connection status transitions: connected → degraded → offline → recovering → connected
-- **Acceptance Criteria**:
-    - [ ] State changes trigger UI re-renders only for affected components
-    - [ ] Store persists during disconnection (don't lose state on reconnect)
-    - [ ] No memory leaks from retry timers
+- Initialize Next.js project with TypeScript and Tailwind CSS
+- Configure dark theme as default
+- Set up `src/` directory structure
 
-### 0.2 Offline Banner Component
-- **Task**: Create `src/components/OfflineBanner.tsx` and integrate into `page.tsx`.
-- **UI**:
-    - Red background (`bg-red-900/90`), high contrast text (`text-white`).
-    - Icon: `AlertCircle` (Lucide).
-    - Text: "⚠️ GATEWAY CONNECTION LOST - Retrying every 2s...".
-    - Prominent button: "Reconnect Now" (if retry fails).
-- **Acceptance Criteria**:
-    - [ ] Component renders at the top of the layout only when `isConnected: false`.
-    - [ ] Covers top 100px of viewport, z-index high (50+).
-    - [ ] Disappears when `isConnected: true` (opacity-0, pointer-events-none).
-    - [ ] Auto-retry countdown visible (e.g., "Reconnecting in 3s...").
-
-### 0.2 Gateway State Integration
-- **Task**: Update `src/hooks/useAgentSocket.ts`, `src/store/agentStore.ts`, and `src/components/GlobalControls.tsx`.
-- **Logic**:
-    - Store exposes `isConnected` state.
-    - `useAgentSocket` emits `setConnectionStatus(true/false)` on connect/disconnect events.
-    - `GlobalControls` button becomes **DISABLED** when offline.
-    - `page.tsx` header "CONNECTED" text changes to "OFFLINE" (red) when disconnected.
-- **Acceptance Criteria**:
-    - [ ] Dashboard header shows "ONLINE" (green) / "OFFLINE" (red).
-    - [ ] Agent tree nodes gray out when disconnected (opacity-50, grayscale).
-    - [ ] Log viewer disabled and shows "No logs available (Gateway offline)" when disconnected.
-    - [ ] **Emergency Stop button is disabled when offline.**
-
-### 0.3 Connection Recovery Testing
-- **Task**: Verify offline-to-online transition flow.
-- **Steps**:
-    1. Start dev server, disconnect WebSocket.
-    2. Confirm offline banner appears, tree grayed out.
-    3. Reconnect WebSocket (or simulate via test script).
-    4. Confirm offline banner disappears, tree restores color.
-- **Acceptance Criteria**:
-    - [ ] Transition is instant (<100ms).
-    - [ ] No visual flicker during state change.
-    - [ ] Store state persists correctly during disconnection.
+**Acceptance**:
+- `npm run dev` starts dev server on :3000
+- Tailwind classes work (test with bg color)
 
 ---
 
-**[GATE]: PHASE 0 REVIEW**
-- [ ] Offline banner visible when Gateway is down.
-- [ ] Agent tree/gray-out effect applied correctly.
-- [ ] Reconnection flow works without visual glitches.
-- [ ] All safety rails preserved (write actions hidden during offline).
+### Task 1.2: Environment & Types
+**Files**: `.env.local`, `.env.example`, `lib/types.ts`
+
+- Create `.env.local` with gateway URL and token
+- Define all TypeScript interfaces from ARCH.md
+- Export types for use across app
+
+**Acceptance**:
+- Types compile without errors
+- `lib/types.ts` exports: Session, HistoryEntry, ContentPart, CronJob, CronRun, MemoryResult, FileResult, SystemStatus, FilterType, FeedItem, SearchResults
 
 ---
 
-## Phase 1: Core Visibility (Read-Only)
+### Task 1.3: OpenClaw Client
+**Files**: `lib/openclaw.ts`
 
-**Goal**: Establish the Next.js frontend, connect to the OpenClaw Gateway via WebSocket, and visualize the live agent tree and logs.
-**Gate**: Must demonstrate stable, <200ms latency updates for agent status and logs before proceeding to Phase 2.
+Implement gateway client with:
+- `OpenClawClient` class with `invoke()` method
+- `unwrap<T>()` helper for envelope parsing
+- Typed tool wrappers: `listSessions()`, `getSessionHistory()`, `listCronJobs()`, `getCronRuns()`, `searchMemory()`, `getSessionStatus()`
 
-### 1.1 Project Setup
-- **Task**: Initialize Next.js project with TypeScript + Tailwind CSS.
-- **Path**: `projects/helicarrier/`
-- **Dependencies**: `lucide-react`, `zustand` (or `jotai`), `socket.io-client` (or native `ws`).
-- **Acceptance Criteria**:
-    - [x] `npm run dev` starts the server on port 3000.
-    - [x] UI shows a basic "Hello Helicarrier" landing page.
-    - [x] Project structure follows Next.js App Router conventions.
-
-### 1.2 WebSocket Client & Store
-- **Task**: Implement the WebSocket client hook and global state store.
-- **Path**: `projects/helicarrier/src/hooks/useAgentSocket.ts`, `src/store/agentStore.ts`.
-- **Logic**:
-    - Connect to `ws://localhost:8080` (configurable via `.env`).
-    - Listen for `agent:update` and `agent:log` events.
-    - Update Zustand store with normalized agent data (map by ID).
-- **Acceptance Criteria**:
-    - [x] Client auto-connects on mount.
-    - [x] Disconnect banner appears if Gateway is down.
-    - [x] Mock events from a test script populate the store correctly.
-
-### 1.3 Agent Tree Component
-- **Task**: Build the visual hierarchy of active agents.
-- **Path**: `projects/helicarrier/src/components/AgentTree.tsx`.
-- **UI**:
-    - Recursive tree structure (Parent -> Children).
-    - Status indicators (Green=Running, Gray=Idle, Red=Error).
-    - Selecting a node highlights it for the Log View.
-- **Acceptance Criteria**:
-    - [x] Renders a mock tree of depth 3 correctly.
-    - [x] Status color updates instantly upon store change.
-    - [x] Click selection updates the `selectedAgentId` in the store.
-
-### 1.4 Live Log Stream
-- **Task**: Create the log viewer panel for the selected agent.
-- **Path**: `projects/helicarrier/src/components/LogViewer.tsx`.
-- **UI**:
-    - Monospace font, dark background.
-    - Auto-scroll to bottom on new logs (toggleable).
-    - Virtualized list for performance (handle 10k+ lines).
-- **Acceptance Criteria**:
-    - [x] Displays logs for the selected agent only.
-    - [x] Auto-scroll pauses when user scrolls up.
-    - [x] Rendering remains smooth with 50 lines/sec input.
-
-### 1.5 Basic Metrics Dashboard
-- **Task**: Add a summary header/sidebar with aggregate metrics.
-- **Path**: `projects/helicarrier/src/components/DashboardStats.tsx`.
-- **Metrics**: Total Active Agents, Total Tokens Used (mock/real), Gateway Status.
-- **Acceptance Criteria**:
-    - [x] Stats update in real-time based on store data.
-    - [x] Gateway connection status (Up/Down) is clearly visible.
+**Acceptance**:
+- Client reads env vars correctly
+- `unwrap()` extracts JSON from `{ ok, result: { content: [{ type: "text", text: "<JSON>" }] } }`
+- All tool wrappers compile
 
 ---
 
-**[GATE]: PHASE 1 REVIEW**
-- [x] **Manual verification of <200ms update latency** (VERIFIED - QA.md Post-Hotfix)
-- [x] **Code review of WebSocket handling and state normalization** (VERIFIED - QA.md)
-- [x] **Security check: ensure no write actions are exposed** (VERIFIED - Phase 1 security checks in QA.md)
+## Phase 2: API Routes
 
-**Phase 1 Completion Evidence**:
-- Lint: PASSED (0 errors)
-- Build: PASSED (Next.js 16.1.6, zero TS errors)
-- No kill/steer UI in components: VERIFIED
-- State isolation verified: VERIFIED
-- Logs: `projects/helicarrier/QA.md` (Phase 1 Gate)
+### Task 2.1: Session Routes
+**Files**: `app/api/sessions/route.ts`, `app/api/sessions/[id]/history/route.ts`
 
----
+- `GET /api/sessions` → calls `listSessions()`
+- `GET /api/sessions/:id/history` → calls `getSessionHistory(id)`
 
-## Phase 2: Active Control (Controlled Write)
-
-**Goal**: Enable operators to intervene (Kill, Steer) and manage sessions directly from the UI.
-**Prerequisite**: Phase 1 Gate passed.
-
-### 2.1 Control API Client
-- **Task**: Implement API functions to call Gateway control endpoints.
-- **Path**: `projects/helicarrier/src/lib/api.ts`.
-- **Endpoints**:
-    - `POST /api/sessions/{id}/kill`
-    - `POST /api/sessions/{id}/steer`
-    - `POST /api/sessions/spawn` (optional for now)
-- **Acceptance Criteria**:
-    - [x] Functions return Promises that resolve on success/fail.
-    - [x] Error handling for network failures or 4xx/5xx responses.
-
-### 2.2 Agent Action Menu
-- **Task**: Add context menu or action buttons to the Agent Tree/Details view.
-- **Path**: `projects/helicarrier/src/components/AgentActions.tsx`.
-- **UI**:
-    - "Kill" button (Red, requires confirmation).
-    - "Steer" button (Opens modal).
-- **Acceptance Criteria**:
-    - [x] Buttons are disabled if the agent is already terminated.
-    - [x] "Kill" triggers a confirmation dialog/popover.
-    - [x] Confirmed action calls the API client.
-
-### 2.3 Steering Interface
-- **Task**: Create a modal for injecting natural language instructions.
-- **Path**: `projects/helicarrier/src/components/SteerModal.tsx`.
-- **UI**:
-    - Textarea for message.
-    - "Send" button.
-- **Acceptance Criteria**:
-    - [x] Submitting sends the text to the `steer` endpoint.
-    - [x] Success notification appears (toast).
-    - [x] Modal closes on success.
-
-### 2.4 Emergency Stop (Global)
-- **Task**: Implement a global "Kill All" or "Panic" button.
-- **Path**: `projects/helicarrier/src/components/GlobalControls.tsx`.
-- **Logic**: Iterates through active sessions or calls a specific global kill endpoint.
-- **Acceptance Criteria**:
-    - [x] Requires double confirmation (e.g., type "STOP").
-    - [x] Successfully terminates all active agents in the mock environment.
-
-### 0.5 Offline Banner Component Integration
-- **Task**: Integrate `OfflineBanner.tsx` into `page.tsx` layout.
-- **UI**:
-    - Red background (`bg-red-900/90`), high contrast text (`text-white`).
-    - Icon: `AlertCircle` (Lucide).
-    - Text: "⚠️ GATEWAY CONNECTION LOST - Retrying every 2s...".
-    - Prominent button: "Reconnect Now" (if retry fails).
-- **Acceptance Criteria**:
-    - [ ] Component renders at the top of the layout only when `isConnected: false`.
-    - [ ] Covers top 100px of viewport, z-index high (50+).
-    - [ ] Disappears when `isConnected: true` (opacity-0, pointer-events-none).
-    - [ ] Auto-retry countdown visible (e.g., "Reconnecting in 3s...").
-
-### 0.6 Gateway State Integration
-- **Task**: Update `src/hooks/useAgentSocket.ts`, `src/store/agentStore.ts`, and `src/components/GlobalControls.tsx`.
-- **Logic**:
-    - Store exposes `isConnected` state.
-    - `useAgentSocket` emits `setConnectionStatus(true/false)` on connect/disconnect events.
-    - `GlobalControls` button becomes **DISABLED** when offline.
-    - `page.tsx` header "CONNECTED" text changes to "OFFLINE" (red) when disconnected.
-- **Acceptance Criteria**:
-    - [ ] Dashboard header shows "ONLINE" (green) / "OFFLINE" (red).
-    - [ ] Agent tree nodes gray out when disconnected (opacity-50, grayscale).
-    - [ ] Log viewer disabled and shows "No logs available (Gateway offline)" when disconnected.
-    - [ ] **Emergency Stop button is disabled when offline.**
-
-### 0.7 Connection Recovery Testing
-- **Task**: Verify offline-to-online transition flow.
-- **Steps**:
-    1. Start dev server, disconnect WebSocket.
-    2. Confirm offline banner appears, tree grayed out.
-    3. Reconnect WebSocket (or simulate via test script).
-    4. Confirm offline banner disappears, tree restores color.
-- **Acceptance Criteria**:
-    - [ ] Transition is instant (<100ms).
-    - [ ] No visual flicker during state change.
-    - [ ] Store state persists correctly during disconnection.
+**Acceptance**:
+- Both routes return JSON
+- Error handling returns `{ error: string }` on failure
+- Test with curl or browser
 
 ---
 
-**[GATE]: PHASE 0 REVIEW**
-- [ ] Offline banner visible when Gateway is down.
-- [ ] Agent tree/gray-out effect applied correctly.
-- [ ] Reconnection flow works without visual glitches.
-- [ ] All safety rails preserved (write actions hidden during offline).
+### Task 2.2: Cron Routes
+**Files**: `app/api/cron/jobs/route.ts`, `app/api/cron/[id]/runs/route.ts`
+
+- `GET /api/cron/jobs` → calls `listCronJobs()`
+- `GET /api/cron/:id/runs` → calls `getCronRuns(id)`
+
+**Acceptance**:
+- Routes return job/run data
+- Handle cron parse errors gracefully
 
 ---
 
-**[GATE]: PHASE 2 QA (Heimdall)**
-- [ ] Write actions disable when Gateway offline (Phase 0)
-- [ ] Double-confirmation modal for Kill/Steer
-- [ ] Emergency Stop requires "STOP" text input
-- [ ] No unauthorized state mutations (Zustand selectors)
-- [ ] XSS protection on user-input steering text
-- [ ] Authorization check for user role (mock implementation)
-- [ ] Security audit: `projects/helicarrier/QA.md` Phase 2 security checklist
+### Task 2.3: Search & Status Routes
+**Files**: `app/api/search/memory/route.ts`, `app/api/search/files/route.ts`
 
-**Phase 2 Completion Evidence**:
-- Lint: PASSED (0 errors)
-- Build: PASSED (Next.js 16.1.6, zero TS errors)
-- Manual test: Kill/Steer flows working
-- Security check: Write actions protected with confirmations
-- QA pass: All security checklist items verified
+- `POST /api/search/memory` → calls `searchMemory(query, limit)`
+- `POST /api/search/files` → use `exec` with `rg` for workspace grep
+
+**Acceptance**:
+- Memory search accepts `{ query, limit }` body
+- File search executes `rg` and parses results
+- Both return typed results
+
+---
+
+### Task 2.4: Health & Version Routes
+**Files**: `app/api/health/route.ts`, `app/api/status/route.ts`, `app/api/openclaw/version/route.ts`
+
+- `GET /api/health` → check gateway `/health` endpoint
+- `GET /api/status` → calls `getSessionStatus()`
+- `GET /api/openclaw/version` → check npm registry for latest version
+
+**Acceptance**:
+- Health returns `{ healthy: boolean }`
+- Version compares current vs latest
+
+---
+
+## Phase 3: Feed Page
+
+### Task 3.1: Feed Utils
+**Files**: `app/feed/lib/feedUtils.ts`
+
+Create utility functions:
+- `flattenHistory(sessions, histories)` → FeedItem[]
+- `parseContentParts(parts)` → extracts text/tool info
+- `formatTimestamp(epochMs)` → relative time string
+
+**Acceptance**:
+- Correctly parses content parts with type "text" and "toolCall"
+- Returns reverse-chronological FeedItem array
+
+---
+
+### Task 3.2: Timeline Components
+**Files**: `app/feed/components/TimelineItem.tsx`, `app/feed/components/Timeline.tsx`
+
+- `TimelineItem`: displays single entry with colored dot (blue=tool, green=user, purple=assistant)
+- `Timeline`: renders list of TimelineItem
+
+**Acceptance**:
+- Dots render correct colors based on type
+- Content renders properly
+
+---
+
+### Task 3.3: Feed Container & Page
+**Files**: `app/feed/components/FeedContainer.tsx`, `app/feed/page.tsx`, `app/feed/components/FilterBar.tsx`
+
+- `FeedContainer`: client component with filter state, polling logic
+- `FilterBar`: All | Tools | Assistant | User buttons
+- `page.tsx`: server component fetching initial data
+
+**Acceptance**:
+- Feed renders with initial data
+- Filter buttons work (show only matching types)
+- Auto-refresh every 30 seconds
+
+---
+
+## Phase 4: Calendar Page
+
+### Task 4.1: Cron Parser Utils
+**Files**: `app/calendar/lib/cronUtils.ts`
+
+Implement:
+- `parseCronExpression(expr)` → parses cron to object
+- `getNextRuns(expr, tz, count)` → generates next N occurrence timestamps
+- `getWeekOccurrences(jobs, weekStart)` → maps jobs to days in week
+
+**Acceptance**:
+- Correctly parses standard cron expressions
+- Generates occurrences in specified timezone
+
+---
+
+### Task 4.2: Calendar Components
+**Files**: `app/calendar/components/WeekGrid.tsx`, `app/calendar/components/DayCell.tsx`, `app/calendar/components/JobCard.tsx`
+
+- `WeekGrid`: 7-column grid for week
+- `DayCell`: single day with job list
+- `JobCard`: mini job display
+
+**Acceptance**:
+- Grid shows 7 days
+- Jobs appear on correct days
+
+---
+
+### Task 4.3: Calendar Container & Detail
+**Files**: `app/calendar/components/CalendarContainer.tsx`, `app/calendar/components/JobDetail.tsx`, `app/calendar/page.tsx`
+
+- `CalendarContainer`: week navigation state, today highlight
+- `JobDetail`: expanded view with run history (fetches `/api/cron/:id/runs`)
+- Navigation: Prev/Next week buttons, Today button
+
+**Acceptance**:
+- Week navigation works
+- Today is highlighted
+- Clicking job expands to show runs
+
+---
+
+## Phase 5: Search Page
+
+### Task 5.1: Search Utils
+**Files**: `app/search/lib/searchUtils.ts`
+
+Implement:
+- `highlightTerms(text, query)` → wraps matches in `<mark>`
+- `groupResults(results)` → organizes by category
+- `filterResults(results, activeTab)` → filters by tab
+
+**Acceptance**:
+- Highlight function wraps matching text
+- Grouping organizes results correctly
+
+---
+
+### Task 5.2: Search Components
+**Files**: `app/search/components/SearchInput.tsx`, `app/search/components/ResultsTabs.tsx`, `app/search/components/ResultGroup.tsx`
+
+- `SearchInput`: debounced input (300ms)
+- `ResultsTabs`: Memories | Files | Conversations | Tasks
+- `ResultGroup`: section with count badge
+
+**Acceptance**:
+- Debounce delays search by 300ms
+- Tabs switch between result categories
+
+---
+
+### Task 5.3: Search Results & Page
+**Files**: `app/search/components/SearchContainer.tsx`, `app/search/components/MemoryResult.tsx`, `app/search/components/FileResult.tsx`, `app/search/page.tsx`
+
+- `SearchContainer`: parallel fetch logic (Promise.all)
+- `MemoryResult`: memory card with highlighted terms
+- `FileResult`: file match with line context
+- `page.tsx`: initial empty state
+
+**Acceptance**:
+- Parallel requests fire simultaneously
+- Results grouped by category
+- Matching terms highlighted
+
+---
+
+## Phase 6: Agent Banner & Navigation
+
+### Task 6.1: Agent Banner Component
+**Files**: `app/components/AgentBanner.tsx`
+
+Implement collapsible banner with:
+- Agent name, version, up-to-date status
+- Stats row: model, context usage, active sessions, runtime mode
+- Connected Resources section (badges)
+- Capabilities section (badges)
+- Sub-Agents section (session list with pulsing status dots)
+- Quick info: workspace path, human name, GitHub
+
+**Acceptance**:
+- Collapses/expands on click
+- Sub-agent dots pulse green if updated <2min ago
+- Version comparison shows checkmark or update available
+
+---
+
+### Task 6.2: Navigation Component
+**Files**: `app/components/Navigation.tsx`
+
+Implement sticky top bar with:
+- 🦀 logo
+- Page links: /feed, /calendar, /search
+- Gateway status indicator (polls /api/health every 30s)
+
+**Acceptance**:
+- Links navigate correctly
+- Status dot green when healthy, red when not
+- Updates every 30 seconds
+
+---
+
+### Task 6.3: Root Layout & Styling
+**Files**: `app/layout.tsx`, `app/globals.css`, `tailwind.config.ts`
+
+- Update root layout with Navigation and AgentBanner
+- Apply dark theme colors from ARCH.md
+- Add fade-in animations and loading skeletons
+
+**Acceptance**:
+- Dark theme applied globally
+- Animations work
+- Skeleton components render correctly
+
+---
+
+## Summary
+
+| Phase | Tasks | Key Deliverables |
+|-------|-------|----------------|
+| 1 | 3 | Project setup, types, openclaw client |
+| 2 | 4 | All API routes (8 total) |
+| 3 | 3 | Feed page with auto-refresh |
+| 4 | 3 | Calendar with cron parsing |
+| 5 | 3 | Search with parallel fetch |
+| 6 | 3 | Navigation, Agent Banner, styling |
+
+**Total Tasks**: 19
+**Estimated Time**: 6-8 hours

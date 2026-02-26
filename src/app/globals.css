@@ -1,20 +1,29 @@
 @import "tailwindcss";
 
+/* CSS Variables for Theme */
 :root {
-  --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 0, 0, 0;
-  --background-end-rgb: 0, 0, 0;
+  --bg-primary: #0a0a0f;
+  --bg-card: #1a1a2e;
+  --bg-border: #2a2a3e;
+  --accent-blue: #60a5fa;
+  --accent-green: #34d399;
+  --accent-purple: #a78bfa;
+  --accent-red: #f87171;
+  --accent-yellow: #fbbf24;
+  --text-primary: #f9fafb;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+}
+
+/* Dark theme default */
+html {
+  color-scheme: dark;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-start-rgb));
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   font-family: var(--font-inter), sans-serif;
-}
-
-@theme {
-  --font-inter: var(--font-inter);
-  --font-mono: var(--font-mono);
 }
 
 /* Custom Scrollbar for Webkit */
@@ -24,14 +33,68 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0f172a; 
+  background: var(--bg-card);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155; 
+  background: var(--bg-border);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569; 
+  background: var(--text-secondary);
+}
+
+/* Animations */
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Utility classes */
+.bg-primary {
+  background-color: var(--bg-primary);
+}
+
+.bg-card {
+  background-color: var(--bg-card);
+}
+
+.bg-border {
+  background-color: var(--bg-border);
+}
+
+.text-primary {
+  color: var(--text-primary);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-muted {
+  color: var(--text-muted);
 }

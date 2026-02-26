@@ -15,7 +15,6 @@ describe('agentStore Actions', () => {
       agents: {},
       logs: [],
       selectedAgentId: null,
-      isConnected: false,
       isOperatorMode: false,
     });
     vi.clearAllMocks();

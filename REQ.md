@@ -1,52 +1,70 @@
-# Requirements: Helicarrier (Hologram)
+# Requirements: Helicarrier Mission Control (v2)
 
 ## 1. Problem Statement
-OpenClaw operators currently lack a unified, real-time visual interface to monitor and control agent swarms. Interaction is primarily CLI or chat-based, which becomes unmanageable with multiple active subagents, leading to reduced situational awareness and slower intervention times during critical failures.
+OpenClaw operators lack a unified visual interface to monitor agent activity, session history, and scheduled tasks. Current interaction is CLI/chat-based, making it hard to get situational awareness across multiple sessions and agents.
 
 ## 2. Users & Personas
-- **Operator (Main User)**: Needs high-level system health at a glance, with the ability to drill down into specific agent logs and intervene (kill/steer) immediately.
-- **Developer**: Needs debug-level visibility into tool calls, latency, and error stacks to diagnose agent misbehavior.
+- **Operator (Main User)**: Needs high-level system health, activity feed, and ability to navigate sessions/logs quickly.
+- **Developer**: Needs visibility into tool calls, session history, and scheduled jobs for debugging.
 
 ## 3. Functional Requirements
 
-### 3.1 Dashboard & Monitoring
-- **FR-01**: Display real-time status of the Main Agent and all active Subagents (Status: Idle, Running, Paused, Error).
-- **FR-02**: Visualize the agent hierarchy (Tree view) showing parent-child relationships.
-- **FR-03**: Stream recent logs and "thought" processes (reasoning blocks) for selected agents.
-- **FR-04**: Display key metrics: Token usage, Session duration, Tool error rates.
+### 3.1 Activity Feed (/feed)
+- **FR-01**: Fetch session list + full history via `sessions_list` and `sessions_history` tools
+- **FR-02**: Parse messages: content is array of `{ type: "text"|"toolCall", text?, name?, arguments? }` parts
+- **FR-03**: Display reverse-chronological timeline with colored dots (blue=tool, green=user, purple=assistant)
+- **FR-04**: Filter buttons: All, Tools, Assistant, User
+- **FR-05**: Auto-refresh every 30 seconds
 
-### 3.2 Controls (Hologram Interface)
-- **FR-05**: Provide a "Kill Switch" for individual agents and a global "Emergency Stop" for the entire swarm.
-- **FR-06**: Allow "Steering" messages to be injected into running subagent sessions without killing them.
-- **FR-07**: Support manual approval/rejection of sensitive tool calls (Human-in-the-loop).
+### 3.2 Cron Calendar (/calendar)
+- **FR-06**: Fetch jobs via `cron` tool with `action: "list"`
+- **FR-07**: Parse schedule as object `{ kind: "cron", expr: "0 5 * * *", tz: "..." }` — extract `expr` for parsing
+- **FR-08**: Weekly grid view with prev/next navigation, today highlighted
+- **FR-09**: Click jobs to expand and show run history via `cron` tool with `action: "runs"`
 
-### 3.3 Session Management
-- **FR-08**: List historical sessions with filtering by date, status, and project.
-- **FR-09**: specific view for "Zombie" processes or detached agents that need cleanup.
+### 3.3 Global Search (/search)
+- **FR-10**: Debounced input that searches in parallel: `memory_search`, workspace grep via `exec`, `sessions_list`, and `cron list`
+- **FR-11**: Group results into Memories, Files, Conversations, Tasks sections
+- **FR-12**: Highlight matching terms
 
-### 3.4 Model Visibility
-- **FR-10**: Show which model is backing each agent (e.g., Gemini 3 Pro, Claude 3.7).
-- **FR-11**: Visual indicator for context window usage (e.g., progress bar towards limit).
+### 3.4 Agent Banner (Top of Every Page)
+- **FR-13**: Show agent name, version (parsed from `session_status` tool output), and whether up to date (check npm registry for latest openclaw version)
+- **FR-14**: Stats row: model, context usage, active sessions, runtime mode
+- **FR-15**: Connected Resources section: badges for each API key/service available
+- **FR-16**: Capabilities section: badges for each tool category (Web Browse, Shell Exec, File System, etc.)
+- **FR-17**: Sub-Agents section: list all sessions with keys matching `:subagent:` or `:cron:`, show label, model, token count, running status (pulsing green dot if updated <2min ago), and task description
+- **FR-18**: Quick info: human name, GitHub username, workspace path, secrets manager
+- **FR-19**: Collapsible — click header to toggle
+
+### 3.5 Navigation
+- **FR-20**: Sticky top bar with 🦀 logo, page links (/feed, /calendar, /search), and gateway status indicator (green/red dot, polls /health every 30s)
 
 ## 4. Non-Functional Requirements
-- **NFR-01 (Latency)**: UI updates must reflect agent state changes within < 200ms.
-- **NFR-02 (Security)**: Dashboard must be accessible only via authenticated localhost or secured tunnel (no public exposure).
-- **NFR-03 (Reliability)**: The dashboard must remain responsive even if the backend agent runtime hangs or crashes.
-- **NFR-04 (Tech Stack)**: Frontend: Next.js/React (consistent with existing stack); Backend: Node.js/WebSocket bridge to OpenClaw core.
 
-## 5. Scope
-### In Scope
-- Web-based Dashboard (Hologram).
-- WebSocket integration with OpenClaw runtime.
-- Basic read/write controls (Kill, Steer).
+### 4.1 Architecture
+- **NFR-01**: All gateway calls go server-side through API routes using `/tools/invoke` endpoint
+- **NFR-02**: Gateway URL and token stored in `.env.local` (never expose to browser)
+- **NFR-03**: Gateway wraps responses in envelope: `{ ok, result: { content: [{ type: "text", text: "<JSON>" }], details } }` — write unwrap helper to extract actual data
+- **NFR-04**: Gateway timestamps are epoch milliseconds, not seconds
 
-### Out of Scope
-- Native mobile app.
-- Multi-user RBAC (Single operator assumed for Phase 1).
-- Voice control integration.
+### 4.2 Tech Stack
+- **NFR-05**: Next.js (App Router), Tailwind CSS, TypeScript
+- **NFR-06**: Project location: `~/projects/helicarrier/`
+
+### 4.3 Theme
+- **NFR-07**: Dark: `#0A0A0F` background, `#1A1A2E` cards, `#2A2A3E` borders
+- **NFR-08**: Accents: blue (`#60A5FA`), green (`#34D399`), purple (`#A78BFA`), red, yellow
+- **NFR-09**: Subtle fade-in animations, loading skeletons
+
+## 5. Prerequisites
+- OpenClaw running with gateway accessible (default: http://127.0.0.1:18789)
+- Node.js installed
+- Gateway token (found in OpenClaw config)
 
 ## 6. Acceptance Criteria
-- [ ] **Dashboard Load**: Dashboard renders with mock agent data in < 1s.
-- [ ] **Live Updates**: Spawning a subagent in CLI immediately (within 1s) appears in the Dashboard tree view.
-- [ ] **Kill Command**: Clicking "Kill" on the UI successfully terminates the corresponding CLI process.
-- [ ] **Log Stream**: Agent tool outputs are visible in the UI log panel as they happen.
+- [ ] **Feed Loads**: /feed renders session history with proper message parsing in < 2s
+- [ ] **Calendar View**: /calendar shows weekly grid with cron jobs parsed correctly
+- [ ] **Search Works**: /search returns grouped results from memory, files, sessions, and cron
+- [ ] **Gateway Status**: Top bar indicator accurately reflects gateway health (polls every 30s)
+- [ ] **Auto-Refresh**: Feed updates every 30 seconds without manual refresh
+- [ ] **Server-Side Only**: No gateway tokens exposed in browser network tab
