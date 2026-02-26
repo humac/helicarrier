@@ -38,3 +38,15 @@
 - **Date**: 2026-02-20
 - **Decision**: All Phase 2 deliverables completed, QA passed, and closeout documentation finalized.
 - **Context**: Mission control dashboard now supports full operator intervention with safety model in place. Ready for production deployment pending backend integration.
+
+## [ADR-007] Phase 3-6 Expansion (Feed, Detail, Calendar, Search)
+- **Status**: Accepted
+- **Date**: 2026-02-26
+- **Decision**: Expand Helicarrier from basic agent monitoring to full mission control with Feed, Agent Detail, Calendar, and Search pages.
+- **Context**: 
+    - **Phase 3**: Feed page with unified session/cron/event view and filtering
+    - **Phase 4**: Agent Detail page with stats, timeline, and action panel
+    - **Phase 5**: Calendar page with week view and cron parsing
+    - **Phase 6**: Search page with Memory/Files/Crons tabs
+- **Implementation**: 8 API routes built to support all pages, all using OpenClaw Gateway client
+- **Result**: 19/19 tasks complete, all phases delivered, ready for Heimdall QA

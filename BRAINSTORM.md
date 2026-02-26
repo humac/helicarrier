@@ -1,5 +1,7 @@
 # Brainstorming: Native OpenClaw Dashboard & Management
 
+> **Note**: Historical document — Decision made, project executed. Kept for reference.
+
 ## Context
 The "Standalone Sidecar" model (Helicarrier V4.1) has been archived. We are pivoting to a more integrated, cost-effective, and seamless way to manage a local OpenClaw instance.
 

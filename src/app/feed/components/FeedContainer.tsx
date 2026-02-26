@@ -50,7 +50,8 @@ export default function FeedContainer() {
       if (!sessionsRes.ok) {
         throw new Error('Failed to fetch sessions');
       }
-      const sessionsData = await sessionsRes.json();
+      const response = await sessionsRes.json();
+      const sessionsData = response.sessions || response;
 
       // Fetch histories for all sessions
       const historyPromises = sessionsData.map(async (session: FeedSession) => {

@@ -1,7 +1,7 @@
 import { Agent } from '@/store/agentStore';
 
 // Base URL for the OpenClaw Gateway API
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:18789';
 
 // Define the API error type
 export interface ApiError {

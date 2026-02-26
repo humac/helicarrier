@@ -3,7 +3,7 @@ import { io, Socket } from 'socket.io-client';
 import { useAgentStore, Agent, LogEntry } from '@/store/agentStore';
 import { useGatewayStore } from '@/store/gatewayStore';
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:8080';
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://127.0.0.1:18789';
 
 export function useAgentSocket() {
   const socketRef = useRef<Socket | null>(null);
