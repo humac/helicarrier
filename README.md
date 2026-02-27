@@ -23,6 +23,37 @@ Helicarrier v3 is a real-time mission control dashboard for monitoring and manag
 | **Date Handling** | date-fns 4.1.0 | Lightweight date formatting |
 | **React** | 18.3.1 | UI library |
 
+## 📁 Project Structure
+
+```
+helicarrier/
+├── src/                 # Application source code
+│   ├── app/            # Next.js App Router pages & API routes
+│   ├── components/     # React components
+│   ├── lib/           # Utilities, hooks, types
+│   └── styles/        # Global styles
+├── docs/              # Project documentation
+│   ├── agent-workflow/  # Agent pipeline docs (REQ, ARCH, TASKS, QA, etc.)
+│   ├── screenshots/     # UI screenshots
+│   ├── DECISIONS.md     # Architecture decisions
+│   └── RUN_STATE.md     # Pipeline state
+├── REPORTS/           # Test reports, final reports
+├── public/            # Static assets
+├── __mocks__/         # Jest mocks
+├── .env.example       # Environment template
+├── .env.local         # Local environment (gitignored)
+├── package.json       # Dependencies
+├── next.config.mjs    # Next.js config
+├── tailwind.config.js # Tailwind config
+├── tsconfig.json      # TypeScript config
+├── jest.config.js     # Jest config
+└── jest.setup.js      # Jest setup
+```
+
+**Note:** Agent workflow documents (REQ.md, ARCH.md, TASKS.md, QA.md, CLAUDE.md, GEMINI.md, ISSUES.md) are in `docs/agent-workflow/` to keep the root clean.
+
+---
+
 ## Quick Start
 
 ### Prerequisites
@@ -35,7 +66,8 @@ Helicarrier v3 is a real-time mission control dashboard for monitoring and manag
 
 ```bash
 # Clone the repository
-cd projects/helicarrier
+git clone https://github.com/humac/helicarrier.git
+cd helicarrier
 
 # Install dependencies
 npm install
