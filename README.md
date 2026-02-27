@@ -171,6 +171,22 @@ projects/helicarrier/
 - [ ] Test all API endpoints
 - [ ] Verify error handling
 
+## 📸 Screenshots
+
+### Home Page
+![Home Page](docs/screenshots/home.png)
+
+### Activity Feed
+![Activity Feed](docs/screenshots/feed.png)
+
+### Cron Calendar
+![Cron Calendar](docs/screenshots/calendar.png)
+
+### Global Search
+![Global Search](docs/screenshots/search.png)
+
+---
+
 ## Features
 
 ### Activity Feed (`/feed`)
