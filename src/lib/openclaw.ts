@@ -1,15 +1,11 @@
 import { GatewayRequest, GatewayResponse, MessageContentPart, CronScheduleObject } from './types';
 
-const GATEWAY_URL = process.env.GATEWAY_URL;
-const GATEWAY_TOKEN = process.env.GATEWAY_TOKEN;
-
-if (!GATEWAY_URL || !GATEWAY_TOKEN) {
-  throw new Error('Missing GATEWAY_URL or GATEWAY_TOKEN environment variables');
-}
-
 /**
  * Server-side Gateway client
  * NEVER import this file in client components
+ * 
+ * Note: Gateway credentials are validated at call time, not module load time.
+ * This allows the app to render without Gateway configured (e.g., local dev).
  */
 
 /**
@@ -24,6 +20,14 @@ export async function invokeGateway<T>(
   action: string,
   params?: Record<string, unknown>
 ): Promise<T> {
+  const GATEWAY_URL = process.env.GATEWAY_URL;
+  const GATEWAY_TOKEN = process.env.GATEWAY_TOKEN;
+  
+  // Validate credentials at call time
+  if (!GATEWAY_URL || !GATEWAY_TOKEN) {
+    throw new Error('Missing GATEWAY_URL or GATEWAY_TOKEN environment variables. Set these in .env.local');
+  }
+
   const url = `${GATEWAY_URL}/tools/invoke`;
   
   const request: GatewayRequest = {

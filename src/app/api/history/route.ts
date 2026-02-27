@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     // Invoke Gateway to fetch message history
     const messages = await invokeGatewayWithRetry<Message[]>(
       'message',
-      'list',
+      'read',
       params
     );
     
