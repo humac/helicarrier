@@ -3,29 +3,30 @@ import { openclaw } from '@/lib/openclaw';
 
 /**
  * GET /api/health
- * Check gateway health endpoint
+ * Check gateway health by invoking sessions_list tool
  */
 export async function GET() {
   try {
-    const gatewayUrl = process.env.OPENCLAW_GATEWAY_URL || 'http://127.0.0.1:18789';
-    
-    const res = await fetch(`${gatewayUrl}/health`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
+    // Use OpenClaw client to invoke a lightweight tool call
+    // This verifies gateway connectivity and auth
+    const result = await openclaw.invoke('sessions_list', {});
 
-    if (!res.ok) {
-      throw new Error(`Gateway health check failed: ${res.status}`);
+    // If we get here, gateway is working (result has sessions array)
+    const sessions = Array.isArray(result) ? result : (result as any)?.sessions;
+    if (!sessions) {
+      throw new Error('Unexpected response format');
     }
 
-    const data = await res.json();
-    return NextResponse.json(data);
+    return NextResponse.json({
+      healthy: true,
+      gateway: 'connected',
+      sessions: sessions.length,
+      timestamp: Date.now(),
+    });
   } catch (error) {
-    console.error('Failed to check gateway health:', error);
+    console.error('Gateway health check failed:', error);
     return NextResponse.json(
-      { error: 'Failed to check gateway health' },
+      { healthy: false, error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
