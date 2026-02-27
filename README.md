@@ -212,14 +212,19 @@ projects/helicarrier/
 | `/api/sessions` | GET | List active sessions |
 | `/api/history` | GET | Fetch session history |
 
-## Screenshots
+## 📸 Screenshots
 
-> _Screenshots section - placeholders for future additions_
+### Home Page
+![Home Page](docs/screenshots/home.png)
 
-- Feed Page: `[TBD]`
-- Calendar Page: `[TBD]`
-- Search Page: `[TBD]`
-- Agent Banner: `[TBD]`
+### Activity Feed
+![Activity Feed](docs/screenshots/feed.png)
+
+### Cron Calendar
+![Calendar](docs/screenshots/calendar.png)
+
+### Global Search
+![Search](docs/screenshots/search.png)
 
 ## Troubleshooting
 
